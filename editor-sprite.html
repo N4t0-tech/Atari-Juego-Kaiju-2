@@ -587,7 +587,7 @@ const FUENTE = {   // glifos 8x8 de la fuente del Atari que usa el HUD
   8:[0,0x3C,0x66,0x3C,0x66,0x66,0x3C,0], 9:[0,0x3C,0x66,0x3E,0x06,0x0C,0x38,0]
 };
 const J = { px:120, py:120, ddx:4, ddy:0, tick:0, paso:0, pose:0, espejo:false, andando:0, rt:0,
-            activa:0, bx:0, by:0, bdx:0, bdy:0, gatillo:1, gatant:1, snd:0, vidas:3, puntos:0 };
+            activa:0, bx:0, by:0, bdx:0, bdy:0, gatillo:1, gatant:1, snd:0, vidas:3, puntos:0, imp:10 };
 // los 57 caracteres de kaiju_fuente (códigos 2-58), en base64. OJO: copia de kaiju_graficos.asm.
 const FUENTE_K_B64 = '/wMMDDAwwP/Dw/Pzz8/Dw6qCoqKKioKqVUFRUUVFQVUCDw8OLw4PAKD8/Oz+rPwACy+6+/u6Lwvg+K7v76744CoiIiIiIioAAgICAgICAgAqAgIqICAqACoCAioCAioAIiIiKgICAgAqICAqAgIqACogICoiIioAKgICAgICAgAqIiIqIiIqACoiIioCAioAAAAAAAC/uvsAAAAAAP6u7/u6vwAAAAAA767+AAAAAAAAAAAAAL+6+AAAAAAA/q4v+Lq/AAAAAAAvrv4AAAAAAAAAAAA8DP8/AwMPDzw8PPA/DzMzwMAAAPP/8/Pw8DD8AAAAADwM/w8wMDw8PDw88D8PDwwMDAAA8////zw8DAwAAAAAPAwAADAAADwAPAD8PwAAAAwAAAAAAADzAAAwMICAgICAgICoqICAoICAgKiIiIiIiIiIoAAAACgAAAAAwMDw8Dw8PA8AAAAAPDD//M//z88PDww//PDMzAMDAAAMDDw8PDw8DwAAAAA8MP/wz////zw8MDD88PAwMDAAADC4uOy4uDAAAAAAAAsAugAAAAAA4ACuAPsALwAAAAAA7wD4AAAAAAAAAAAAAAAAAAAAAAAAAAAA';
 const KAIJU_PF = [0x8A, 0x34, 0xCC];   // KAIJU_COLOR0-2: bloques (píxeles 01, 10, 11)
@@ -645,6 +645,7 @@ function pasoJuego() {
   if (d.izq) { mvx = -1; J.ddx = -4; }
   if (d.der) { mvx = 1; J.ddx = 4; }
   if (!(mvx && mvy && (J.rt & 3) === 0)) {        // diagonal: frena 1 de cada 4 pasos (npaso)
+    if (--J.imp <= 0) { J.imp = 10; mvx *= 2; mvy *= 2; }   // impulso: 1 de cada 10 pasos el doble (+10%, IMPULSO)
     const sx = J.px + mvx, sy = J.py + mvy;
     J.px = Math.min(200, Math.max(50, sx)); if (chocaJ()) J.px = ox;
     J.py = Math.min(198, Math.max(40, sy)); if (chocaJ()) J.py = oy;

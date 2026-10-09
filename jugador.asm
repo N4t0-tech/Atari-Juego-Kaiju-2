@@ -67,6 +67,15 @@ noright
         bne nofreno
         rts
 nofreno
+        ; impulso: 1 de cada IMPULSO pasos avanza el doble, asi el jugador va
+        ; un 10% mas rapido sin tocar el resto del juego
+        dec cimpulso
+        bne noimpulso
+        lda #IMPULSO
+        sta cimpulso
+        asl mvx         ; -1/1 -> -2/2 (px)
+        asl mvy         ; -2/2 -> -4/4 (lineas)
+noimpulso
 
         ; horizontal: 50 <= px <= 200, y deshacer si choca con un bloque
         lda px

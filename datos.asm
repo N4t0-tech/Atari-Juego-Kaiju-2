@@ -4,6 +4,8 @@ px      .byte 120
 py      .byte 120       ; en lineas (PMG a 1 linea)
 FRAMES_PASO = 2         ; frames por paso del juego (1 = 50/60 pasos por segundo)
 npaso   .byte 0         ; contador de pasos del juego (freno en diagonal)
+IMPULSO = 10            ; el jugador avanza el doble 1 de cada IMPULSO pasos (+10%)
+cimpulso .byte IMPULSO  ; pasos hasta el proximo impulso
 tick    .byte 0         ; frames desde el ultimo cambio de paso
 paso    .byte 0         ; paso de la caminata: 0 = A, 1 = B
 pose    .byte 0         ; pose a dibujar (POSE_*)
