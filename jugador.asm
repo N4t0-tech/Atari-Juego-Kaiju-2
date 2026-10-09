@@ -7,6 +7,8 @@
 ; se desliza a lo largo de una pared)
 mover_jugador
         jsr borrar_jugador      ; borrar sprite en la posicion vieja
+        lda #0
+        sta salida
 
         lda px          ; guardar posicion para deshacer el movimiento
         sta oldx
@@ -72,9 +74,13 @@ nofreno
         adc mvx
         cmp #50
         bcs okleft
+        ldx #SAL_IZQ    ; quiso salir por la izquierda (ver_salida)
+        stx salida
         lda #50
 okleft  cmp #201
         bcc okright
+        ldx #SAL_DER
+        stx salida
         lda #200
 okright sta px
         jsr choca
@@ -89,9 +95,13 @@ okx
         adc mvy
         cmp #40
         bcs okmin
+        ldx #SAL_ARR
+        stx salida
         lda #40
 okmin   cmp #199
         bcc okmax
+        ldx #SAL_ABA
+        stx salida
         lda #198
 okmax   sta py
         jsr choca

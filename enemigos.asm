@@ -7,9 +7,9 @@
 ; zona de vigilancia pasan a perseguirlo. Caracteres: rob_clase + 0/4
 ; (mirando a la izquierda, direcciones 0-3) o + $10/$14 (4-8), alternando.
 
-; carga los robots y las celulas del nivel, que siguen al mapa en niveles.asm
-; (ptr queda ahi tras dibujar_nivel): robots, celulas, 11 bytes por robot y
-; (x, y) por celula
+; carga los robots y las celulas del nivel, que siguen a los mapas en
+; niveles.asm (ptr queda ahi tras dibujar_nivel): robots, celulas, 12 bytes
+; por robot y (parte, x, y) por celula. No los dibuja (mostrar_parte)
 cargar_robots
         jsr leer_nivel
         sta nrob
@@ -19,6 +19,8 @@ cargar_robots
         ldx #0
 cr_rob  cpx nrob
         bcs cr_cel
+        jsr leer_nivel
+        sta rob_parte,x
         jsr leer_nivel
         sta rob_x,x
         jsr leer_nivel
@@ -53,9 +55,11 @@ cr_rob  cpx nrob
         sta rob_tiro,x
         inx
         jmp cr_rob
-cr_cel  ldx #0          ; celulas: pares (x, y)
+cr_cel  ldx #0          ; celulas: (parte, x, y)
 cr_c2   cpx ncel
-        bcs cr_dib
+        bcs cr_fin
+        jsr leer_nivel
+        sta cel_parte,x
         jsr leer_nivel
         sta cel_x,x
         jsr leer_nivel
@@ -64,13 +68,6 @@ cr_c2   cpx ncel
         sta cel_viva,x
         inx
         jmp cr_c2
-cr_dib  jsr centro_jugador       ; hacia donde miran los tiradores
-        ldx #0          ; dibujar los robots
-cr_d2   cpx nrob
-        bcs cr_fin
-        jsr dibujar_robot
-        inx
-        jmp cr_d2
 cr_fin  rts
 
 ; ptr2 = direccion en pantalla de la casilla del robot X. Conserva X.
@@ -181,9 +178,13 @@ ae_ya   lda #11
 ae_rob  cpx nrob
         bcc ae_uno
         rts
-ae_uno  lda rob_dir,x
+ae_uno  lda rob_parte,x  ; solo los de la parte en pantalla
+        cmp parte
+        bne ae_salta
+        lda rob_dir,x
         cmp #9
         bne ae_vivo
+ae_salta
         jmp ae_sig
 ae_vivo
         ; zona de vigilancia: si el jugador esta dentro, a perseguirlo
@@ -244,8 +245,7 @@ ae_paso ldy rob_dir,x
         clc
         adc dir_dy,y
         sta rob_y,x
-        jsr dir_robot
-        jsr libre2x2    ; solo entra en casillas vacias
+        jsr libre_robot ; solo entra en casillas vacias
         beq ae_dib
         lda ox_r
         sta rob_x,x
@@ -255,6 +255,22 @@ ae_dib  jsr dibujar_robot
         jsr tirador
 ae_sig  inx
         jmp ae_rob
+
+; Z = 1 si el robot X (ya movido) sigue dentro de la pantalla (columnas 0-38,
+; filas 1-22: no se escapa por los huecos del borde) y sus 4 casillas estan
+; libres. Conserva X.
+libre_robot
+        lda rob_x,x
+        cmp #39
+        bcs lr_no
+        lda rob_y,x
+        beq lr_no
+        cmp #23
+        bcs lr_no
+        jsr dir_robot
+        jmp libre2x2
+lr_no   lda #1          ; Z = 0
+        rts
 
 ; A = direccion hacia el jugador para el robot X (tabla persigue)
 hacia_jugador
@@ -320,6 +336,9 @@ golpear_enemigo
         ldx #0
 ge_rob  cpx nrob
         bcs ge_fin
+        lda rob_parte,x
+        cmp parte
+        bne ge_sig
         lda rob_dir,x
         cmp #9
         beq ge_sig
@@ -358,6 +377,9 @@ ct_cel  jsr caja_jugador
         ldx #0
 ct_c2   cpx ncel
         bcs ct_rob
+        lda cel_parte,x
+        cmp parte
+        bne ct_cs
         lda cel_viva,x
         beq ct_cs
         ldy cel_y,x
@@ -370,6 +392,9 @@ ct_cs   inx
 ct_rob  ldx #0
 ct_r2   cpx nrob
         bcs ct_fin
+        lda rob_parte,x
+        cmp parte
+        bne ct_rs
         lda rob_dir,x
         cmp #9
         beq ct_rs

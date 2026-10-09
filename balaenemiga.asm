@@ -68,8 +68,7 @@ libre_dir
         clc
         adc dir_dy,y
         sta rob_y,x
-        jsr dir_robot
-        jsr libre2x2
+        jsr libre_robot
         php
         lda ox_r
         sta rob_x,x

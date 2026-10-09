@@ -168,7 +168,7 @@ cargar_etapa
         sta ddx
         lda #11
         sta cnt11
-        jsr pintar_celulas
+        jsr mostrar_parte       ; la parte inicial, con sus celulas y robots
         jsr dibujar_hud
         jsr modo_juego
         jsr animar_jugador

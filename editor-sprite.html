@@ -70,6 +70,11 @@
   #nlista div.sel { border-color:var(--acento); background:#203a41; }
   #nlista small { color:var(--suave); }
   #nmapa { width:100%; height:auto; aspect-ratio:640/384; background:#000; }
+  #npartes { display:grid; gap:4px; margin-top:6px; }
+  .nparte { font-size:11px; color:var(--suave); text-align:center; cursor:pointer; }
+  .nparte canvas { width:100%; height:auto; border:2px solid var(--borde); border-radius:4px; image-rendering:pixelated; }
+  .nparte.sel canvas { border-color:var(--acento); }
+  .nparte.sel { color:var(--texto); }
   #ntiles { display:flex; flex-wrap:wrap; gap:4px; }
   #ntiles canvas { width:32px; height:32px; border:2px solid var(--borde); border-radius:4px; cursor:pointer; background:#000; }
   #ntiles canvas.sel { border-color:var(--acento); }
@@ -163,7 +168,8 @@ Al terminar pulsa <strong>Exportar</strong> y pásame el texto: yo actualizo <co
   <h2>Niveles · <code>niveles.asm</code></h2>
   <p class="ayuda">Los niveles del juego, en orden. Pinta los bloques con el botón izquierdo (el derecho borra);
     con <strong>Célula</strong> y <strong>Robot</strong> haz clic para ponerlos, arrástralos para moverlos y
-    bórralos con el botón derecho. Al terminar pulsa <strong>Descargar niveles.asm</strong> y guárdalo en la
+    bórralos con el botón derecho. Un nivel puede tener varias partes (pantallas): se pasa de una a otra
+    saliendo por un hueco del borde. Al terminar pulsa <strong>Descargar niveles.asm</strong> y guárdalo en la
     carpeta del juego (reemplazando el anterior), o pásame el texto de abajo. Deshacer: <kbd>Ctrl</kbd>+<kbd>Z</kbd>
     después de tocar este panel. Tus niveles se guardan solos en este navegador.</p>
   <div id="naviso" class="aviso">Se recuperó un borrador de niveles de una sesión anterior.
@@ -176,6 +182,10 @@ Al terminar pulsa <strong>Exportar</strong> y pásame el texto: yo actualizo <co
         <button id="nborrar">Borrar</button></div>
       <div class="grupo"><button id="nsubir">↑ Antes</button><button id="nbajar">↓ Después</button></div>
       <label class="campo">Nombre <input id="nnombre" maxlength="40"></label>
+      <div class="campo">Partes: <select id="nancho"></select> de ancho × <select id="nalto"></select> de alto</div>
+      <div id="npartes"></div>
+      <p class="ayuda" style="font-size:12px; max-width:220px">Elige la parte que editas. En el juego se pasa de una a otra
+        saliendo por un hueco del borde: al abrir uno, se abre también en la parte vecina.</p>
       <div class="grupo" style="margin-top:8px"><button id="nprobar">▶ Probar en la escena</button></div>
       <p id="nmemoria" class="ayuda" style="font-size:12px"></p>
     </div>
@@ -586,10 +596,16 @@ const FUENTE_K = b64(FUENTE_K_B64);
 // los 16 caracteres del tirador (fuente_tirador de datos.asm): códigos $40-$47 y $50-$57. OJO: copia.
 const FUENTE_T = [0x0F,0x3F,0x35,0x36,0x35,0x0F,0x03,0xAF,0xF0,0xFC,0x5C,0x9C,0x5C,0xF0,0xC0,0xFF,0xAF,0x03,0x3F,0x33,0x33,0x3F,0x30,0xF0,0xFF,0xC3,0xFC,0xCC,0xCC,0xFC,0x0C,0x0F,0x0F,0x3F,0x35,0x35,0x35,0x0F,0x03,0x2F,0xF0,0xFC,0x5C,0xAC,0x5C,0xF0,0xC0,0xFF,0x2F,0x03,0x3F,0x33,0x33,0x3F,0xC0,0xC0,0xFF,0xC3,0xFC,0xCC,0xCC,0xFC,0x03,0x03,0x0F,0x3F,0x35,0x36,0x35,0x0F,0x03,0xFF,0xF0,0xFC,0x5C,0x9C,0x5C,0xF0,0xC0,0xFA,0xFF,0xC3,0x3F,0x33,0x33,0x3F,0x30,0xF0,0xFA,0xC0,0xFC,0xCC,0xCC,0xFC,0x0C,0x0F,0x0F,0x3F,0x35,0x3A,0x35,0x0F,0x03,0xFF,0xF0,0xFC,0x5C,0x5C,0x5C,0xF0,0xC0,0xF8,0xFF,0xC3,0x3F,0x33,0x33,0x3F,0xC0,0xC0,0xF8,0xC0,0xFC,0xCC,0xCC,0xFC,0x03,0x03];
 let mapa = new Uint8Array(960), mapaCambio = true;   // 24 x 40; fila 0 = HUD
-function cargarNivel(n) {   // dibujar_nivel, con los niveles del panel Niveles
+function cargarNivel(n) {   // dibujar_nivel, con los niveles del panel Niveles (cada parte en su copia)
   const N = NV.niveles[n] || NV.niveles[0];
-  J.px = N.px; J.py = N.py; mapa = new Uint8Array(960); mapa.set(N.mapa, 40);
-  J.activa = 0; J.puntos = 0; mapaCambio = true;
+  J.nivel = N; J.mapas = N.partes.map(m => { const a = new Uint8Array(960); a.set(m, 40); return a; });
+  J.parte = N.parteIni; mapa = J.mapas[J.parte];
+  J.px = N.px; J.py = N.py; J.activa = 0; J.puntos = 0; mapaCambio = true;
+}
+function salirDemo(lado) {   // ver_salida
+  const q = vecino(J.nivel, J.parte, lado); if (q < 0) return;
+  J.parte = q; mapa = J.mapas[q]; J.activa = 0; mapaCambio = true;
+  if (lado === 'izq') J.px = 200; else if (lado === 'der') J.px = 50; else if (lado === 'arr') J.py = 198; else J.py = 40;
 }
 // choca: la caja del robot (8 columnas, líneas 2-21) toca algún bloque?
 function chocaJ() {
@@ -629,8 +645,11 @@ function pasoJuego() {
   if (d.izq) { mvx = -1; J.ddx = -4; }
   if (d.der) { mvx = 1; J.ddx = 4; }
   if (!(mvx && mvy && (J.rt & 3) === 0)) {        // diagonal: frena 1 de cada 4 pasos (npaso)
-    J.px = Math.min(200, Math.max(50, J.px + mvx)); if (chocaJ()) J.px = ox;
-    J.py = Math.min(198, Math.max(40, J.py + mvy)); if (chocaJ()) J.py = oy;
+    const sx = J.px + mvx, sy = J.py + mvy;
+    J.px = Math.min(200, Math.max(50, sx)); if (chocaJ()) J.px = ox;
+    J.py = Math.min(198, Math.max(40, sy)); if (chocaJ()) J.py = oy;
+    if (sy < 40) salirDemo('arr'); else if (sy > 198) salirDemo('aba');   // como salida en mover_jugador
+    else if (sx < 50) salirDemo('izq'); else if (sx > 200) salirDemo('der');
     J.andando = (J.px !== ox || J.py !== oy) ? 1 : 0;
   }
   // animar_jugador: poses de Kaiju (índices de KPOSES = POSE_* de datos.asm)
@@ -741,18 +760,38 @@ document.querySelectorAll('[data-vidas]').forEach(b => b.addEventListener('click
 }));
 
 // ===================== niveles: formato de niveles.asm (sin DOM) =====================
-// Un nivel: { nombre, px, py, mapa: 920 caracteres (filas 1-23 de la pantalla x 40),
-//   robots: [{ x, y, dira, dirb, pasos, clase, vida, zx0, zx1, zy0, zy1 }], celulas: [{ x, y }] }
-// En el .asm: px, py; el mapa comprimido ($FF, n, v = n veces v); robots, celulas;
-// 11 bytes por robot (en el orden de CAMPOS_ROBOT) y (x, y) por célula. Ver nivel.asm.
-const MAXROB = 10, MAXCEL = 18;   // datos.asm
-const CAMPOS_ROBOT = ['x', 'y', 'dira', 'dirb', 'pasos', 'clase', 'vida', 'zx0', 'zx1', 'zy0', 'zy1'];
+// Un nivel: { nombre, ancho, alto (partes de la cuadrícula), parteIni, px, py (inicio del jugador),
+//   partes: [920 caracteres por parte (filas 1-23 de la pantalla x 40), en orden fila por fila],
+//   robots: [{ parte, x, y, dira, dirb, pasos, clase, vida, zx0, zx1, zy0, zy1 }], celulas: [{ parte, x, y }] }
+// En el .asm: parteIni, px, py, ancho, alto; cada parte comprimida ($FF, n, v = n veces v);
+// robots, celulas; 12 bytes por robot (en el orden de CAMPOS_ROBOT) y (parte, x, y) por célula.
+// Ver nivel.asm (dibujar_nivel), enemigos.asm (cargar_robots) y partes.asm.
+const MAXROB = 16, MAXCEL = 18, MAXPARTES = 4;   // datos.asm
+const CAMPOS_ROBOT = ['parte', 'x', 'y', 'dira', 'dirb', 'pasos', 'clase', 'vida', 'zx0', 'zx1', 'zy0', 'zy1'];
 const DIR_DX = [-1, 0, -1, -1, 1, 0, 1, 1, 0], DIR_DY = [-1, -1, 0, 1, 1, 1, 0, -1, 0];   // dir_dx/dir_dy
-function nivelNuevo(nombre) {
+function mapaBorde() {
   const mapa = [];
   for (let f = 1; f <= 23; f++) for (let c = 0; c < 40; c++)
     mapa.push(c === 0 || c === 39 ? 3 : (f === 1 || f === 23) ? 2 : 0);
-  return { nombre: nombre || 'Nivel nuevo', px: 48 + 4 * 19, py: 32 + 8 * 11, mapa, robots: [], celulas: [] };
+  return mapa;
+}
+function nivelNuevo(nombre) {
+  return { nombre: nombre || 'Nivel nuevo', ancho: 1, alto: 1, parteIni: 0, px: 48 + 4 * 19, py: 32 + 8 * 11,
+    partes: [mapaBorde()], robots: [], celulas: [] };
+}
+// borradores del formato anterior (un solo mapa, sin partes)
+function migrarNivel(L) {
+  if (L.partes) return L;
+  return { nombre: L.nombre, ancho: 1, alto: 1, parteIni: 0, px: L.px, py: L.py, partes: [L.mapa],
+    robots: L.robots.map(r => ({ parte: 0, ...r })), celulas: L.celulas.map(c => ({ parte: 0, ...c })) };
+}
+// parte vecina de p por un lado ('izq', 'der', 'arr', 'aba'), o -1
+function vecino(N, p, lado) {
+  const c = p % N.ancho, f = Math.floor(p / N.ancho);
+  if (lado === 'izq') return c > 0 ? p - 1 : -1;
+  if (lado === 'der') return c < N.ancho - 1 ? p + 1 : -1;
+  if (lado === 'arr') return f > 0 ? p - N.ancho : -1;
+  return f < N.alto - 1 ? p + N.ancho : -1;
 }
 function comprimirFila(fila) {
   const out = [];
@@ -766,8 +805,8 @@ function comprimirFila(fila) {
   return out;
 }
 function bytesNivel(L) {   // lo que ocupa en memoria (+2 de su puntero en «niveles»)
-  let n = 2 + 2 + 2 + 11 * L.robots.length + 2 * L.celulas.length + 2;
-  for (let f = 0; f < 23; f++) n += comprimirFila(L.mapa.slice(f * 40, f * 40 + 40)).length;
+  let n = 5 + 2 + 12 * L.robots.length + 3 * L.celulas.length + 2;
+  for (const m of L.partes) for (let f = 0; f < 23; f++) n += comprimirFila(m.slice(f * 40, f * 40 + 40)).length;
   return n;
 }
 const comentar = (t, c) => (t.length < 64 ? t.padEnd(64) : t + ' ') + '; ' + c;
@@ -779,25 +818,31 @@ function exportarNiveles(niveles) {
     '; exportar de nuevo.',
     ';',
     '; Cada nivel:',
-    ';   .byte x, y      inicio del jugador (HPOS y linea PMG de su esquina)',
-    ';   23 filas del mapa (filas 1-23 de la pantalla, 40 caracteres cada una),',
-    ';     comprimidas: $FF, n, v = n veces el caracter v; otro byte va tal cual',
-    ';   .byte robots, celulas',
-    ';   robots, 11 bytes: x, y (casilla de arriba a la izquierda de sus 2 x 2),',
-    ';     direccion A, direccion B, pasos, caracter ($9C rojo o $1C), vida y la',
-    ';     zona de vigilancia: columnas x0-x1, filas y0-y1',
-    ';   celulas, 2 bytes: x, y',
+    ';   .byte parte, x, y   inicio del jugador: parte, HPOS y linea PMG de su esquina',
+    ';   .byte ancho, alto   partes del nivel (cuadricula, hasta MAXPARTES en total)',
+    ';   cada parte, fila por fila de la cuadricula: 23 filas del mapa (filas 1-23',
+    ';     de la pantalla, 40 caracteres cada una), comprimidas: $FF, n, v = n',
+    ';     veces el caracter v; otro byte va tal cual',
+    ';   .byte robots, celulas (de todo el nivel)',
+    ';   robots, 12 bytes: parte, x, y (casilla de arriba a la izquierda de sus',
+    ';     2 x 2), direccion A, direccion B, pasos, caracter ($9C/$1C, tirador',
+    ';     $C0/$40), vida y la zona de vigilancia: columnas x0-x1, filas y0-y1',
+    ';   celulas, 3 bytes: parte, x, y',
     '', `NUM_NIVELES = ${niveles.length}`, '');
   for (let i = 0; i < niveles.length; i += 8)
     L.push(col(i ? '' : 'niveles', '.word ' + niveles.slice(i, i + 8).map((_, k) => 'nivel' + (i + k + 1)).join(',')));
   niveles.forEach((N, i) => {
     L.push('', col('nivel' + (i + 1), '; ' + (N.nombre || '').replace(/[\r\n]/g, ' ')));
-    L.push(comentar(col('', `.byte ${N.px},${N.py}`), 'inicio del jugador'));
-    for (let f = 0; f < 23; f++)
-      L.push(comentar(col('', '.byte ' + comprimirFila(N.mapa.slice(f * 40, f * 40 + 40)).map(fmtByte).join(',')), `fila ${f + 1}`));
+    L.push(comentar(col('', `.byte ${N.parteIni},${N.px},${N.py}`), 'inicio del jugador: parte, x, y'));
+    L.push(comentar(col('', `.byte ${N.ancho},${N.alto}`), 'partes: ancho, alto'));
+    N.partes.forEach((m, p) => {
+      if (N.partes.length > 1) L.push(col('', `; parte ${p} (columna ${p % N.ancho}, fila ${Math.floor(p / N.ancho)})`));
+      for (let f = 0; f < 23; f++)
+        L.push(comentar(col('', '.byte ' + comprimirFila(m.slice(f * 40, f * 40 + 40)).map(fmtByte).join(',')), `fila ${f + 1}`));
+    });
     L.push(comentar(col('', `.byte ${N.robots.length},${N.celulas.length}`), 'robots, celulas'));
     N.robots.forEach((r, k) => L.push(comentar(col('', '.byte ' + CAMPOS_ROBOT.map(c => fmtByte(r[c])).join(',')), `robot ${k}`)));
-    if (N.celulas.length) L.push(comentar(col('', '.byte ' + N.celulas.map(c => c.x + ',' + c.y).join(',')), 'celulas (x, y)'));
+    if (N.celulas.length) L.push(comentar(col('', '.byte ' + N.celulas.map(c => c.parte + ',' + c.x + ',' + c.y).join(',')), 'celulas (parte, x, y)'));
   });
   return L.join('\n') + '\n';
 }
@@ -823,26 +868,34 @@ function leerNiveles(texto) {
     if (!B) throw new Error(`falta la etiqueta ${et}`);
     const d = B.bytes; let i = 0;
     const leer = () => { if (i >= d.length || isNaN(d[i])) throw new Error(`${et}: faltan bytes`); return d[i++]; };
-    const N = { nombre: B.nombre, px: leer(), py: leer(), mapa: [], robots: [], celulas: [] };
-    while (N.mapa.length < 920) {
-      const v = leer();
-      if (v === 0xFF) { const n = leer() || 256, x = leer(); for (let k = 0; k < n; k++) N.mapa.push(x); }
-      else N.mapa.push(v);
+    const parteIni = leer(), px = leer(), py = leer(), ancho = leer(), alto = leer();
+    const N = { nombre: B.nombre, ancho, alto, parteIni, px, py, partes: [], robots: [], celulas: [] };
+    if (!N.ancho || !N.alto || N.ancho * N.alto > MAXPARTES || N.parteIni >= N.ancho * N.alto)
+      throw new Error(`${et}: partes ${N.ancho} x ${N.alto} no válidas (¿es un niveles.asm de antes de las partes?)`);
+    for (let p = 0; p < N.ancho * N.alto; p++) {
+      const mapa = [];
+      while (mapa.length < 920) {
+        const v = leer();
+        if (v === 0xFF) { const n = leer() || 256, x = leer(); for (let k = 0; k < n; k++) mapa.push(x); }
+        else mapa.push(v);
+      }
+      if (mapa.length !== 920) throw new Error(`${et}: la parte ${p} no tiene 23 x 40 caracteres`);
+      N.partes.push(mapa);
     }
-    if (N.mapa.length !== 920) throw new Error(`${et}: el mapa no tiene 23 x 40 caracteres`);
     const nr = leer(), nc = leer();
     for (let k = 0; k < nr; k++) { const r = {}; CAMPOS_ROBOT.forEach(c => r[c] = leer()); N.robots.push(r); }
-    for (let k = 0; k < nc; k++) N.celulas.push({ x: leer(), y: leer() });
+    for (let k = 0; k < nc; k++) N.celulas.push({ parte: leer(), x: leer(), y: leer() });
     return N;
   });
 }
 // recorrido de la patrulla (como actualizar_enemigos): casillas por las que pasa
 // el robot, sin contar a los otros robots
 function recorrido(N, r) {
+  const mapa = N.partes[r.parte], cels = N.celulas.filter(c => c.parte === r.parte);
   const ocupado = (x, y) => {
-    if (x < 0 || y < 1 || x > 38 || y > 22) return true;
-    for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) if (N.mapa[(y + dy - 1) * 40 + x + dx]) return true;
-    return N.celulas.some(c => Math.abs(c.x - x) < 2 && Math.abs(c.y - y) < 2);
+    if (x < 0 || y < 1 || x > 38 || y > 22) return true;   // libre_robot
+    for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) if (mapa[(y + dy - 1) * 40 + x + dx]) return true;
+    return cels.some(c => Math.abs(c.x - x) < 2 && Math.abs(c.y - y) < 2);
   };
   let x = r.x, y = r.y, dir = r.dira, paso = 0, fase = 0;
   const pts = [[x, y]], vueltas = r.pasos ? Math.min(400, r.pasos * 4) : 160;
@@ -866,21 +919,25 @@ const NIVELES_ASM = `; niveles.asm - niveles del juego, generado con editor-spri
 ; exportar de nuevo.
 ;
 ; Cada nivel:
-;   .byte x, y      inicio del jugador (HPOS y linea PMG de su esquina)
-;   23 filas del mapa (filas 1-23 de la pantalla, 40 caracteres cada una),
-;     comprimidas: $FF, n, v = n veces el caracter v; otro byte va tal cual
-;   .byte robots, celulas
-;   robots, 11 bytes: x, y (casilla de arriba a la izquierda de sus 2 x 2),
-;     direccion A, direccion B, pasos, caracter ($9C rojo o $1C), vida y la
-;     zona de vigilancia: columnas x0-x1, filas y0-y1
-;   celulas, 2 bytes: x, y
+;   .byte parte, x, y   inicio del jugador: parte, HPOS y linea PMG de su esquina
+;   .byte ancho, alto   partes del nivel (cuadricula, hasta MAXPARTES en total)
+;   cada parte, fila por fila de la cuadricula: 23 filas del mapa (filas 1-23
+;     de la pantalla, 40 caracteres cada una), comprimidas: $FF, n, v = n
+;     veces el caracter v; otro byte va tal cual
+;   .byte robots, celulas (de todo el nivel)
+;   robots, 12 bytes: parte, x, y (casilla de arriba a la izquierda de sus
+;     2 x 2), direccion A, direccion B, pasos, caracter ($9C/$1C, tirador
+;     $C0/$40), vida y la zona de vigilancia: columnas x0-x1, filas y0-y1
+;   celulas, 3 bytes: parte, x, y
 
 NUM_NIVELES = 1
 
 niveles                 .word nivel1
 
 nivel1                  ; Primer nivel
-                        .byte 124,112                           ; inicio del jugador
+                        .byte 0,124,112                         ; inicio del jugador: parte, x, y
+                        .byte 2,1                               ; partes: ancho, alto
+                        ; parte 0 (columna 0, fila 0)
                         .byte 3,$FF,38,2,3                      ; fila 1
                         .byte 3,$FF,18,0,5,5,$FF,18,0,3         ; fila 2
                         .byte 3,$FF,18,0,5,5,$FF,18,0,3         ; fila 3
@@ -890,10 +947,10 @@ nivel1                  ; Primer nivel
                         .byte 3,$FF,38,0,3                      ; fila 7
                         .byte 3,$FF,4,0,$FF,10,4,$FF,10,0,$FF,10,4,$FF,4,0,3 ; fila 8
                         .byte 3,$FF,38,0,3                      ; fila 9
-                        .byte 3,$FF,38,0,3                      ; fila 10
-                        .byte 3,$FF,38,0,3                      ; fila 11
-                        .byte 3,$FF,38,0,3                      ; fila 12
-                        .byte 3,$FF,38,0,3                      ; fila 13
+                        .byte 3,$FF,39,0                        ; fila 10
+                        .byte 3,$FF,39,0                        ; fila 11
+                        .byte 3,$FF,39,0                        ; fila 12
+                        .byte 3,$FF,39,0                        ; fila 13
                         .byte 3,$FF,38,0,3                      ; fila 14
                         .byte 3,$FF,4,0,$FF,10,4,$FF,10,0,$FF,10,4,$FF,4,0,3 ; fila 15
                         .byte 3,$FF,38,0,3                      ; fila 16
@@ -904,10 +961,37 @@ nivel1                  ; Primer nivel
                         .byte 3,$FF,18,0,5,5,$FF,18,0,3         ; fila 21
                         .byte 3,$FF,18,0,5,5,$FF,18,0,3         ; fila 22
                         .byte 3,$FF,38,2,3                      ; fila 23
-                        .byte 2,6                               ; robots, celulas
-                        .byte 8,4,6,2,16,$9C,1,0,18,1,7         ; robot 0
-                        .byte 30,18,2,6,16,$C0,1,21,39,16,23    ; robot 1
-                        .byte 3,3,35,3,3,20,35,20,9,11,29,11    ; celulas (x, y)
+                        ; parte 1 (columna 1, fila 0)
+                        .byte 3,$FF,38,2,3                      ; fila 1
+                        .byte 3,$FF,7,0,5,5,$FF,20,0,5,5,$FF,7,0,3 ; fila 2
+                        .byte 3,$FF,7,0,5,5,$FF,20,0,5,5,$FF,7,0,3 ; fila 3
+                        .byte 3,$FF,7,0,5,5,$FF,20,0,5,5,$FF,7,0,3 ; fila 4
+                        .byte 3,$FF,7,0,5,5,$FF,20,0,5,5,$FF,7,0,3 ; fila 5
+                        .byte 3,$FF,7,0,$FF,24,4,$FF,7,0,3      ; fila 6
+                        .byte 3,$FF,7,0,5,5,$FF,14,0,5,5,$FF,13,0,3 ; fila 7
+                        .byte 3,$FF,7,0,5,5,$FF,14,0,5,5,$FF,13,0,3 ; fila 8
+                        .byte 3,$FF,7,0,5,5,$FF,14,0,5,5,$FF,13,0,3 ; fila 9
+                        .byte $FF,8,0,5,5,$FF,29,0,3            ; fila 10
+                        .byte $FF,8,0,5,5,$FF,29,0,3            ; fila 11
+                        .byte $FF,8,0,5,5,$FF,29,0,3            ; fila 12
+                        .byte $FF,8,0,5,5,$FF,29,0,3            ; fila 13
+                        .byte 3,$FF,7,0,5,5,$FF,14,0,5,5,$FF,13,0,3 ; fila 14
+                        .byte 3,$FF,7,0,5,5,$FF,14,0,5,5,$FF,13,0,3 ; fila 15
+                        .byte 3,$FF,7,0,5,5,$FF,14,0,5,5,$FF,13,0,3 ; fila 16
+                        .byte 3,$FF,7,0,$FF,24,4,$FF,7,0,3      ; fila 17
+                        .byte 3,$FF,7,0,5,5,$FF,20,0,5,5,$FF,7,0,3 ; fila 18
+                        .byte 3,$FF,7,0,5,5,$FF,20,0,5,5,$FF,7,0,3 ; fila 19
+                        .byte 3,$FF,7,0,5,5,$FF,20,0,5,5,$FF,7,0,3 ; fila 20
+                        .byte 3,$FF,7,0,5,5,$FF,20,0,5,5,$FF,7,0,3 ; fila 21
+                        .byte 3,$FF,7,0,5,5,$FF,20,0,5,5,$FF,7,0,3 ; fila 22
+                        .byte 3,$FF,38,2,3                      ; fila 23
+                        .byte 5,9                               ; robots, celulas
+                        .byte 0,8,4,6,2,16,$9C,1,0,18,1,7       ; robot 0
+                        .byte 0,30,18,2,6,16,$C0,1,21,39,16,23  ; robot 1
+                        .byte 1,12,3,6,2,24,$9C,2,0,39,1,5      ; robot 2
+                        .byte 1,16,11,3,0,4,$C0,1,10,23,7,16    ; robot 3
+                        .byte 1,12,19,6,2,16,$9C,1,6,19,15,23   ; robot 4
+                        .byte 0,3,3,0,35,3,0,3,20,0,35,20,0,9,11,0,29,11,1,34,3,1,34,20,1,28,11 ; celulas (parte, x, y)
 `;
 const PRESUPUESTO = 0xBC00 - 0x9100;   // ZONA_NIVELES-ZONA_NIVELES_FIN (hardware.asm): 11008 bytes solo para niveles
 const NTILES = [0, 2, 3, 4, 5, ...Array.from({ length: 14 }, (_, i) => 6 + i), 0x34, 0x35, 0x36, 0x37, 0x38];
@@ -918,7 +1002,7 @@ const TIPOS_ROBOT = [[0x9C, 'rojo ($9C)'], [0x1C, 'verde ($1C)'], [0xC0, 'tirado
 const NC = 16;   // tamaño de un carácter en el canvas del mapa (640 x 384)
 let NBASE = leerNiveles(NIVELES_ASM);   // lo que tiene el juego
 let NV = { niveles: copia(NBASE) };      // lo que se está editando
-let nSel = 0, nHerr = 'bloque', nTile = 4, nRob = -1, focoNiveles = false;
+let nSel = 0, nParte = 0, nHerr = 'bloque', nTile = 4, nRob = -1, focoNiveles = false;   // nParte: la que se edita
 const nDeshacerPila = [], nRehacerPila = [];
 const nivelAct = () => NV.niveles[nSel];
 
@@ -938,7 +1022,9 @@ function nGuardarUndo(antes) {   // antes: JSON del estado previo (o el actual)
 }
 function nAjustar() {
   nSel = Math.max(0, Math.min(nSel, NV.niveles.length - 1));
-  if (nRob >= nivelAct().robots.length) nRob = -1;
+  const N = nivelAct();
+  if (nParte >= N.partes.length) nParte = 0;
+  if (!N.robots[nRob] || N.robots[nRob].parte !== nParte) nRob = -1;
 }
 
 // --- caracteres de ANTIC 4 con la fuente de Kaiju (inversos: el 11 usa COLOR3) ---
@@ -970,7 +1056,47 @@ const charRobot = r => r.clase + (r.dira >= 4 ? 0x10 : 0);   // dibujar_robot (f
 // --- el mapa ---
 const nmapa = document.getElementById('nmapa'), nctx = nmapa.getContext('2d');
 let nHover = null, nArrastre = null;
-const tile = (N, c, f) => f >= 1 && f <= 23 && c >= 0 && c < 40 ? N.mapa[(f - 1) * 40 + c] : -1;
+const tile = (N, c, f) => f >= 1 && f <= 23 && c >= 0 && c < 40 ? N.partes[nParte][(f - 1) * 40 + c] : -1;
+const enParte = o => o.parte === nParte;
+const NOMBRE_LADO = { izq:'izquierdo', der:'derecho', arr:'de arriba', aba:'de abajo' };
+// casillas del borde de un lado: [columna, fila] (las esquinas cuentan en los dos)
+const bordeDe = lado => lado === 'izq' || lado === 'der'
+  ? Array.from({ length: 23 }, (_, k) => [lado === 'izq' ? 0 : 39, k + 1])
+  : Array.from({ length: 40 }, (_, k) => [k, lado === 'arr' ? 1 : 23]);
+// huecos (tiras de casillas vacías) del borde de la parte p por un lado
+function huecos(N, p, lado) {
+  const m = N.partes[p], H = []; let h = null;
+  for (const [c, f] of bordeDe(lado)) {
+    if (!m[(f - 1) * 40 + c]) { if (!h) H.push(h = []); h.push([c, f]); } else h = null;
+  }
+  return H;
+}
+// pone un carácter en la parte p y, si está en un borde con parte vecina, también en
+// el borde de enfrente de la vecina (así los huecos coinciden siempre)
+function setTile(N, p, c, f, v) {
+  if (f < 1 || f > 23 || c < 0 || c > 39) return;
+  N.partes[p][(f - 1) * 40 + c] = v;
+  const enlazar = (lado, c2, f2) => { const q = vecino(N, p, lado); if (q >= 0) N.partes[q][(f2 - 1) * 40 + c2] = v; };
+  if (c === 0) enlazar('izq', 39, f);
+  if (c === 39) enlazar('der', 0, f);
+  if (f === 1) enlazar('arr', c, 23);
+  if (f === 23) enlazar('aba', c, 1);
+}
+// en los bordes con parte vecina: flechas en los huecos y el número de la vecina
+function dibujarBordes(c, N) {
+  c.font = 'bold 12px system-ui'; c.textBaseline = 'middle'; c.textAlign = 'center';
+  for (const [lado, flecha] of [['izq', '◀'], ['der', '▶'], ['arr', '▲'], ['aba', '▼']]) {
+    const q = vecino(N, nParte, lado); if (q < 0) continue;
+    c.fillStyle = '#4fc3d9';
+    huecos(N, nParte, lado).flat().forEach(([x, y]) => c.fillText(flecha, x * NC + NC / 2, y * NC + NC / 2));
+    const t = 'parte ' + q, w = c.measureText(t).width + 8;
+    const X = lado === 'izq' ? NC + w / 2 : lado === 'der' ? 640 - NC - w / 2 : 320;
+    const Y = lado === 'arr' ? 2 * NC + 8 : lado === 'aba' ? 384 - NC - 8 : 12 * NC;
+    c.fillStyle = '#000c'; c.fillRect(X - w / 2, Y - 8, w, 16);
+    c.fillStyle = '#4fc3d9'; c.fillText(t, X, Y);
+  }
+  c.textAlign = 'left';
+}
 function dibujarNivelEditor() {
   const N = nivelAct(), c = nctx;
   c.imageSmoothingEnabled = false;
@@ -978,12 +1104,12 @@ function dibujarNivelEditor() {
   c.globalAlpha = 0.45;
   filaHud(N).forEach((ch, x) => pintarChar(c, ch, x * NC, 0, NC, NC));
   c.globalAlpha = 1;
-  for (let f = 1; f <= 23; f++) for (let x = 0; x < 40; x++) pintarChar(c, N.mapa[(f - 1) * 40 + x], x * NC, f * NC, NC, NC);
+  for (let f = 1; f <= 23; f++) for (let x = 0; x < 40; x++) pintarChar(c, N.partes[nParte][(f - 1) * 40 + x], x * NC, f * NC, NC, NC);
   const dos = (ch, x, y) => [[0, 0], [1, 0], [0, 1], [1, 1]].forEach(([dx, dy], i) => pintarChar(c, ch + i, (x + dx) * NC, (y + dy) * NC, NC, NC));
-  N.celulas.forEach(o => dos(0x18, o.x, o.y));
-  N.robots.forEach(r => dos(charRobot(r), r.x, r.y));
+  N.celulas.filter(enParte).forEach(o => dos(0x18, o.x, o.y));
+  N.robots.filter(enParte).forEach(r => dos(charRobot(r), r.x, r.y));
   // jugador: pose «quieto →» de Kaiju (1 color clock = 4 px, 1 línea = 2 px)
-  for (let y = 0; y < 24; y++) for (let x = 0; x < 8; x++) {
+  if (N.parteIni === nParte) for (let y = 0; y < 24; y++) for (let x = 0; x < 8; x++) {
     const col = colorKaiju(getK(0, x, y)); if (!col) continue;
     c.fillStyle = col; c.fillRect((N.px - 48 + x) * 4, (N.py - 32 + y) * 2, 4, 2);
   }
@@ -994,6 +1120,7 @@ function dibujarNivelEditor() {
     c.fillStyle = '#ffffff40'; c.fillRect(0, NC, 640, 1);
   }
   if (document.getElementById('nespejo').checked) { c.fillStyle = '#4fc3d980'; c.fillRect(320 - 1, NC, 2, 384 - NC); }
+  dibujarBordes(c, N);
   // robot elegido: zona de vigilancia y recorrido de la patrulla
   const r = N.robots[nRob];
   if (r) {
@@ -1011,7 +1138,7 @@ function dibujarNivelEditor() {
     c.strokeStyle = '#fff'; c.strokeRect(r.x * NC, r.y * NC, 2 * NC, 2 * NC);
   }
   c.font = 'bold 11px system-ui'; c.textBaseline = 'top';
-  N.robots.forEach((r, i) => { c.fillStyle = '#000a'; c.fillRect(r.x * NC, r.y * NC, 12, 12); c.fillStyle = '#fff'; c.fillText(i, r.x * NC + 2, r.y * NC + 1); });
+  N.robots.forEach((r, i) => { if (!enParte(r)) return; c.fillStyle = '#000a'; c.fillRect(r.x * NC, r.y * NC, 12, 12); c.fillStyle = '#fff'; c.fillText(i, r.x * NC + 2, r.y * NC + 1); });
   // vista previa del rectángulo / zona que se está arrastrando, y el cursor
   if (nArrastre && (nArrastre.tipo === 'rect' || nArrastre.tipo === 'zona')) {
     const [a, b] = nArrastre.desde, [p, q] = nArrastre.hasta;
@@ -1029,11 +1156,10 @@ const celdaMapa = e => {
 };
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const objEn = (lista, c, f) => { for (let i = lista.length - 1; i >= 0; i--) { const o = lista[i];
-  if (c >= o.x && c <= o.x + 1 && f >= o.y && f <= o.y + 1) return i; } return -1; };
+  if (enParte(o) && c >= o.x && c <= o.x + 1 && f >= o.y && f <= o.y + 1) return i; } return -1; };
 function ponerTile(N, c, f, v) {
-  if (f < 1 || f > 23) return;
-  N.mapa[(f - 1) * 40 + c] = v;
-  if (document.getElementById('nespejo').checked) N.mapa[(f - 1) * 40 + 39 - c] = v;
+  setTile(N, nParte, c, f, v);
+  if (document.getElementById('nespejo').checked) setTile(N, nParte, 39 - c, f, v);
 }
 function rellenarMapa(N, c0, f0, v) {
   const viejo = tile(N, c0, f0); if (viejo < 0 || viejo === v) return;
@@ -1041,11 +1167,11 @@ function rellenarMapa(N, c0, f0, v) {
   while (pila.length) {
     const [c, f] = pila.pop();
     if (tile(N, c, f) !== viejo) continue;
-    N.mapa[(f - 1) * 40 + c] = v;
+    setTile(N, nParte, c, f, v);
     pila.push([c + 1, f], [c - 1, f], [c, f + 1], [c, f - 1]);
   }
 }
-const robotNuevo = (x, y) => ({ x, y, dira:6, dirb:2, pasos:16, clase:0x9C, vida:1,
+const robotNuevo = (x, y) => ({ parte:nParte, x, y, dira:6, dirb:2, pasos:16, clase:0x9C, vida:1,
   zx0:clamp(x - 6, 0, 39), zx1:clamp(x + 7, 0, 39), zy0:clamp(y - 4, 1, 23), zy1:clamp(y + 5, 1, 23) });
 nmapa.addEventListener('contextmenu', e => e.preventDefault());
 nmapa.addEventListener('pointerdown', e => {
@@ -1056,14 +1182,14 @@ nmapa.addEventListener('pointerdown', e => {
   nmapa.setPointerCapture(e.pointerId);
   if (nHerr === 'bloque') ponerTile(N, c, f, borrar ? 0 : nTile);
   else if (nHerr === 'relleno') { rellenarMapa(N, c, f, borrar ? 0 : nTile); if (document.getElementById('nespejo').checked) rellenarMapa(N, 39 - c, f, borrar ? 0 : nTile); }
-  else if (nHerr === 'jugador') { if (!borrar) { N.px = 48 + 4 * clamp(c, 1, 38); N.py = 32 + 8 * clamp(f - 1, 1, 20); } }
+  else if (nHerr === 'jugador') { if (!borrar) { N.parteIni = nParte; N.px = 48 + 4 * clamp(c, 1, 38); N.py = 32 + 8 * clamp(f - 1, 1, 20); } }
   else if (nHerr === 'celula' || nHerr === 'robot') {
     const lista = nHerr === 'celula' ? N.celulas : N.robots, i = objEn(lista, c, f);
     if (borrar) { if (i >= 0) { lista.splice(i, 1); if (nHerr === 'robot') nRob = -1; } nArrastre.tipo = null; }
     else if (i >= 0) { nArrastre.i = i; nArrastre.dx = c - lista[i].x; nArrastre.dy = f - lista[i].y; if (nHerr === 'robot') nRob = i; }
     else if (lista.length < (nHerr === 'celula' ? MAXCEL : MAXROB)) {
       const x = clamp(c, 0, 38), y = clamp(f, 1, 22);
-      lista.push(nHerr === 'celula' ? { x, y } : robotNuevo(x, y));
+      lista.push(nHerr === 'celula' ? { parte:nParte, x, y } : robotNuevo(x, y));
       nArrastre.i = lista.length - 1; nArrastre.dx = c - x; nArrastre.dy = f - y;
       if (nHerr === 'robot') nRob = nArrastre.i;
     } else { alert(`Máximo ${nHerr === 'celula' ? MAXCEL + ' células' : MAXROB + ' robots'} por nivel (MAXCEL / MAXROB de datos.asm).`); nArrastre = null; }
@@ -1075,7 +1201,7 @@ nmapa.addEventListener('pointermove', e => {
   const [c, f] = celdaMapa(e), N = nivelAct();
   nHover = [c, f];
   const t = tile(N, c, f);
-  document.getElementById('nestado').textContent = `columna ${c}, fila ${f}` + (f === 0 ? ' (HUD, no se edita)' : ` · carácter ${t}`) +
+  document.getElementById('nestado').textContent = (N.partes.length > 1 ? `parte ${nParte} · ` : '') + `columna ${c}, fila ${f}` + (f === 0 ? ' (HUD, no se edita)' : ` · carácter ${t}`) +
     (nHerr === 'jugador' ? ` · inicio: x = ${48 + 4 * clamp(c, 1, 38)}, y = ${32 + 8 * clamp(f - 1, 1, 20)}` : '');
   const A = nArrastre;
   if (A) {
@@ -1117,8 +1243,8 @@ function pintarListaNiveles() {
   const cont = document.getElementById('nlista'); cont.innerHTML = '';
   NV.niveles.forEach((N, i) => {
     const d = document.createElement('div'); d.className = i === nSel ? 'sel' : '';
-    d.innerHTML = `<b>${i + 1}</b> · ${escaparHtml(N.nombre || 'sin nombre')} <small>· ${N.celulas.length} cél. · ${N.robots.length} rob.</small>`;
-    d.addEventListener('click', () => { nSel = i; nRob = -1; nRefrescar(); });
+    d.innerHTML = `<b>${i + 1}</b> · ${escaparHtml(N.nombre || 'sin nombre')} <small>· ${N.partes.length > 1 ? N.ancho + '×' + N.alto + ' · ' : ''}${N.celulas.length} cél. · ${N.robots.length} rob.</small>`;
+    d.addEventListener('click', () => { nSel = i; nParte = N.parteIni; nRob = -1; nRefrescar(); });
     cont.appendChild(d);
   });
   document.getElementById('nnombre').value = nivelAct().nombre || '';
@@ -1130,7 +1256,7 @@ function pintarListaNiveles() {
 const escaparHtml = t => t.replace(/[&<>"]/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[ch]));
 function nOperacion(f) { nGuardarUndo(); f(); nAjustar(); nCambio(true); }
 document.getElementById('nnuevo').addEventListener('click', () => nOperacion(() => {
-  NV.niveles.splice(nSel + 1, 0, nivelNuevo('Nivel ' + (NV.niveles.length + 1))); nSel++; nRob = -1;
+  NV.niveles.splice(nSel + 1, 0, nivelNuevo('Nivel ' + (NV.niveles.length + 1))); nSel++; nParte = 0; nRob = -1;
 }));
 document.getElementById('nduplicar').addEventListener('click', () => nOperacion(() => {
   const d = copia(nivelAct()); d.nombre = (d.nombre || '') + ' (copia)'; NV.niveles.splice(nSel + 1, 0, d); nSel++;
@@ -1142,6 +1268,49 @@ document.getElementById('nborrar').addEventListener('click', () => {
 const mover = d => nOperacion(() => { const [x] = NV.niveles.splice(nSel, 1); nSel += d; NV.niveles.splice(nSel, 0, x); });
 document.getElementById('nsubir').addEventListener('click', () => mover(-1));
 document.getElementById('nbajar').addEventListener('click', () => mover(1));
+// --- partes del nivel: cuadrícula y miniaturas ---
+function pintarPartes() {
+  const N = nivelAct(), cont = document.getElementById('npartes');
+  cont.style.gridTemplateColumns = `repeat(${N.ancho}, minmax(0, 100px))`;
+  cont.innerHTML = '';
+  N.partes.forEach((m, p) => {
+    const d = document.createElement('div'); d.className = 'nparte' + (p === nParte ? ' sel' : '');
+    const cv = document.createElement('canvas'); cv.width = 160; cv.height = 92;
+    const cx = cv.getContext('2d'); cx.imageSmoothingEnabled = false; cx.fillStyle = PAL[0]; cx.fillRect(0, 0, 160, 92);
+    for (let f = 0; f < 23; f++) for (let c = 0; c < 40; c++) pintarChar(cx, m[f * 40 + c], c * 4, f * 4, 4, 4);
+    cx.fillStyle = '#8ef08e'; N.celulas.filter(o => o.parte === p).forEach(o => cx.fillRect(o.x * 4, (o.y - 1) * 4, 8, 8));
+    cx.fillStyle = '#e0605a'; N.robots.filter(o => o.parte === p).forEach(o => cx.fillRect(o.x * 4, (o.y - 1) * 4, 8, 8));
+    if (N.parteIni === p) { cx.fillStyle = '#4fc3d9'; cx.fillRect(N.px - 48, (N.py - 32) / 2 - 4, 8, 12); }
+    d.appendChild(cv); d.appendChild(document.createTextNode(`parte ${p}` + (N.parteIni === p ? ' · inicio' : '')));
+    d.addEventListener('click', () => { nParte = p; nRob = -1; nRefrescar(); });
+    cont.appendChild(d);
+  });
+  const sa = document.getElementById('nancho'), sl = document.getElementById('nalto');
+  if (!sa.options.length) for (let i = 1; i <= MAXPARTES; i++) { sa.add(new Option(i, i)); sl.add(new Option(i, i)); }
+  sa.value = N.ancho; sl.value = N.alto;
+  [...sa.options].forEach(o => o.disabled = +o.value * N.alto > MAXPARTES);
+  [...sl.options].forEach(o => o.disabled = +o.value * N.ancho > MAXPARTES);
+}
+// cambia la cuadrícula a W x H: las partes que siguen entrando conservan su lugar
+function redimensionar(W, H) {
+  const N = nivelAct();
+  if (W * H > MAXPARTES || (W === N.ancho && H === N.alto)) return pintarPartes();
+  const idx = p => { const c = p % N.ancho, f = Math.floor(p / N.ancho); return c < W && f < H ? f * W + c : -1; };
+  const quedanFuera = N.partes.map((_, p) => p).filter(p => idx(p) < 0);
+  if (quedanFuera.length && !confirm(`Se borran las partes ${quedanFuera.join(', ')} con sus células y robots. ¿Seguir? (Se puede deshacer)`))
+    return pintarPartes();
+  nOperacion(() => {
+    const partes = Array.from({ length: W * H }, () => mapaBorde());
+    N.partes.forEach((m, p) => { const q = idx(p); if (q >= 0) partes[q] = m; });
+    const mover = o => ({ ...o, parte: idx(o.parte) });
+    N.robots = N.robots.filter(o => idx(o.parte) >= 0).map(mover);
+    N.celulas = N.celulas.filter(o => idx(o.parte) >= 0).map(mover);
+    N.parteIni = Math.max(0, idx(N.parteIni)); nParte = Math.max(0, idx(nParte));
+    N.ancho = W; N.alto = H; N.partes = partes; nRob = -1;
+  });
+}
+document.getElementById('nancho').addEventListener('change', e => redimensionar(+e.target.value, nivelAct().alto));
+document.getElementById('nalto').addEventListener('change', e => redimensionar(nivelAct().ancho, +e.target.value));
 let nNombreAntes = null;
 document.getElementById('nnombre').addEventListener('focus', () => nNombreAntes = JSON.stringify(NV));
 document.getElementById('nnombre').addEventListener('input', e => { nivelAct().nombre = e.target.value; nCambio(); });
@@ -1149,13 +1318,17 @@ document.getElementById('nnombre').addEventListener('change', () => {
   if (nNombreAntes && nNombreAntes !== JSON.stringify(NV)) nGuardarUndo(nNombreAntes);
   nNombreAntes = JSON.stringify(NV);
 });
-document.getElementById('nborde').addEventListener('click', () => nOperacion(() => {
-  const N = nivelAct(), b = nivelNuevo().mapa;
-  b.forEach((v, i) => { if (v) N.mapa[i] = v; });
+document.getElementById('nborde').addEventListener('click', () => nOperacion(() => {   // cierra también los huecos
+  const N = nivelAct();
+  mapaBorde().forEach((v, i) => { if (v) setTile(N, nParte, i % 40, Math.floor(i / 40) + 1, v); });
 }));
 document.getElementById('nvaciar').addEventListener('click', () => {
-  if (!confirm('¿Vaciar el mapa de este nivel? Quedan solo el borde, el inicio y sin células ni robots. (Se puede deshacer)')) return;
-  nOperacion(() => { const N = nivelAct(), v = nivelNuevo(); N.mapa = v.mapa; N.celulas = []; N.robots = []; nRob = -1; });
+  if (!confirm('¿Vaciar el mapa de esta parte? Quedan solo el borde (con los huecos hacia las otras partes), sin células ni robots. (Se puede deshacer)')) return;
+  nOperacion(() => {
+    const N = nivelAct(), m = N.partes[nParte];
+    for (let f = 2; f <= 22; f++) for (let c = 1; c <= 38; c++) m[(f - 1) * 40 + c] = 0;
+    N.celulas = N.celulas.filter(o => !enParte(o)); N.robots = N.robots.filter(o => !enParte(o)); nRob = -1;
+  });
 });
 document.getElementById('ndeshacer').addEventListener('click', nDeshacer);
 document.getElementById('nrehacer').addEventListener('click', nRehacer);
@@ -1200,7 +1373,7 @@ function pintarFormRobot() {
   const dirs = sel => NOMBRE_DIR.map((t, i) => `<option value="${i}"${i === sel ? ' selected' : ''}>${t}</option>`).join('');
   const n = (k, min, max) => `<input type="number" data-k="${k}" min="${min}" max="${max}" value="${r[k]}">`;
   cont.innerHTML = `<table>
-    <tr><td>Robot</td><td><b>${nRob}</b> en (${r.x}, ${r.y})</td></tr>
+    <tr><td>Robot</td><td><b>${nRob}</b> en (${r.x}, ${r.y})${nivelAct().partes.length > 1 ? ', parte ' + r.parte : ''}</td></tr>
     <tr><td>Tipo</td><td><select data-k="clase">${TIPOS_ROBOT.map(([v, t]) =>
       `<option value="${v}"${r.clase === v ? ' selected' : ''}>${t}</option>`).join('')}</select></td></tr>
     <tr><td>Vida</td><td>${n('vida', 1, 9)} disparos</td></tr>
@@ -1234,22 +1407,49 @@ function pintarFormRobot() {
 
 // --- avisos del nivel ---
 function avisosNivel(N) {
-  const A = [], ocupa = (x, y) => [[0, 0], [1, 0], [0, 1], [1, 1]].some(([dx, dy]) => tile(N, x + dx, y + dy));
+  const A = [], P = nParte, varias = N.partes.length > 1, ocupa = (x, y) => [[0, 0], [1, 0], [0, 1], [1, 1]].some(([dx, dy]) => tile(N, x + dx, y + dy));
+  const solido = t => t > 0 && (t < 0x14 || t >= 0x34);
   if (!N.celulas.length) A.push('No tiene células: el nivel se termina apenas empieza.');
   if (N.celulas.length > MAXCEL) A.push(`Tiene ${N.celulas.length} células; el máximo es ${MAXCEL}.`);
-  if (N.robots.length > MAXROB) A.push(`Tiene ${N.robots.length} robots; el máximo es ${MAXROB}.`);
-  const f0 = (N.py + 2 - 32) >> 3, f1 = (N.py + 21 - 32) >> 3, c0 = (N.px - 48) >> 2, c1 = (N.px + 7 - 48) >> 2;
-  let choca = false;
-  for (let f = f0; f <= f1; f++) for (let c = c0; c <= c1; c++) { const t = tile(N, c, f); if (t && (t < 0x14 || t >= 0x34)) choca = true; }
-  if (choca) A.push('El jugador empieza encima de un bloque: no se va a poder mover.');
-  N.celulas.forEach((o, i) => { if (ocupa(o.x, o.y)) A.push(`La célula en (${o.x}, ${o.y}) está encima de un bloque.`);
-    if (N.celulas.some((p, k) => k > i && Math.abs(p.x - o.x) < 2 && Math.abs(p.y - o.y) < 2)) A.push(`Hay células encimadas en (${o.x}, ${o.y}).`); });
+  if (N.robots.length > MAXROB) A.push(`Tiene ${N.robots.length} robots; el máximo es ${MAXROB} en todo el nivel.`);
+  // partes a las que se puede llegar desde la del inicio (por huecos del tamaño del jugador)
+  const pasa = (p, lado) => huecos(N, p, lado).some(h => h.length >= (lado === 'izq' || lado === 'der' ? 3 : 2));
+  const llega = new Set([N.parteIni]), cola = [N.parteIni];
+  while (cola.length) { const p = cola.pop();
+    for (const lado of ['izq', 'der', 'arr', 'aba']) { const q = vecino(N, p, lado); if (q >= 0 && !llega.has(q) && pasa(p, lado)) { llega.add(q); cola.push(q); } } }
+  const sinLlegar = [...new Set(N.celulas.filter(o => !llega.has(o.parte)).map(o => o.parte))];
+  if (sinLlegar.length) A.push(`No se puede llegar a ${sinLlegar.length > 1 ? 'las partes ' : 'la parte '}${sinLlegar.join(', ')}, y tiene células: falta un hueco en el borde.`);
+  const pre = varias ? `Parte ${P}: ` : '';
+  if (N.parteIni === P) {
+    const f0 = (N.py + 2 - 32) >> 3, f1 = (N.py + 21 - 32) >> 3, c0 = (N.px - 48) >> 2, c1 = (N.px + 7 - 48) >> 2;
+    let choca = false;
+    for (let f = f0; f <= f1; f++) for (let c = c0; c <= c1; c++) if (solido(tile(N, c, f))) choca = true;
+    if (choca) A.push('El jugador empieza encima de un bloque: no se va a poder mover.');
+    N.robots.forEach((r, i) => { if (enParte(r) && r.x <= c1 && r.x + 1 >= c0 && r.y <= f1 && r.y + 1 >= f0) A.push(`El robot ${i} toca al jugador al empezar.`); });
+  }
+  const cels = N.celulas.filter(enParte);
+  cels.forEach((o, i) => { if (ocupa(o.x, o.y)) A.push(`${pre}la célula en (${o.x}, ${o.y}) está encima de un bloque.`);
+    if (cels.some((p, k) => k > i && Math.abs(p.x - o.x) < 2 && Math.abs(p.y - o.y) < 2)) A.push(`${pre}hay células encimadas en (${o.x}, ${o.y}).`); });
   N.robots.forEach((r, i) => {
+    if (!enParte(r)) return;
     if (ocupa(r.x, r.y)) A.push(`El robot ${i} está encima de un bloque.`);
-    if (N.celulas.some(o => Math.abs(o.x - r.x) < 2 && Math.abs(o.y - r.y) < 2)) A.push(`El robot ${i} está encima de una célula.`);
-    if (N.robots.some((p, k) => k > i && Math.abs(p.x - r.x) < 2 && Math.abs(p.y - r.y) < 2)) A.push(`Los robots ${i} y otro están encimados.`);
-    if (r.x <= c1 && r.x + 1 >= c0 && r.y <= f1 && r.y + 1 >= f0) A.push(`El robot ${i} toca al jugador al empezar.`);
+    if (cels.some(o => Math.abs(o.x - r.x) < 2 && Math.abs(o.y - r.y) < 2)) A.push(`El robot ${i} está encima de una célula.`);
+    if (N.robots.some((p, k) => k > i && enParte(p) && Math.abs(p.x - r.x) < 2 && Math.abs(p.y - r.y) < 2)) A.push(`Los robots ${i} y otro están encimados.`);
   });
+  // huecos del borde de esta parte
+  for (const lado of ['izq', 'der', 'arr', 'aba']) {
+    const q = vecino(N, P, lado), H = huecos(N, P, lado), vert = lado === 'izq' || lado === 'der';
+    if (!H.length) continue;
+    if (q < 0) { A.push(`${pre}hay un hueco en el borde ${NOMBRE_LADO[lado]} pero no hay otra parte de ese lado.`); continue; }
+    H.forEach(h => {
+      if (h.length < (vert ? 3 : 2)) A.push(`${pre}el hueco del borde ${NOMBRE_LADO[lado]} es muy chico (${h.length} ${vert ? 'filas; el jugador necesita 3' : 'columnas; el jugador necesita 2'}).`);
+      // detrás del hueco (las 2 casillas siguientes, en las dos partes) no tiene que haber bloques
+      const adentro = (p, c, f, d) => [1, 2].some(k => solido(N.partes[p][((vert ? f : f + d * k) - 1) * 40 + (vert ? c + d * k : c)]));
+      const dP = lado === 'izq' || lado === 'arr' ? 1 : -1;
+      if (h.some(([c, f]) => adentro(P, c, f, dP) || adentro(q, vert ? 39 - c : c, vert ? f : 24 - f, -dP)))
+        A.push(`${pre}hay bloques justo detrás del hueco del borde ${NOMBRE_LADO[lado]} (aquí o en la parte ${q}): el jugador se puede trabar al pasar.`);
+    });
+  }
   return A;
 }
 function pintarAvisos() {
@@ -1268,7 +1468,7 @@ function nRefrescar(form = true) {
   document.querySelectorAll('[data-nh]').forEach(b => b.classList.toggle('on', b.dataset.nh === nHerr));
   document.getElementById('ndeshacer').disabled = !nDeshacerPila.length;
   document.getElementById('nrehacer').disabled = !nRehacerPila.length;
-  pintarListaNiveles(); pintarTiles(); if (form) pintarFormRobot(); pintarAvisos(); pintarSelPrueba(); nRedibujar();
+  pintarListaNiveles(); pintarPartes(); pintarTiles(); if (form) pintarFormRobot(); pintarAvisos(); pintarSelPrueba(); nRedibujar();
 }
 let ntGuardar = 0;
 function nCambio(form) {   // form: rehacer también el formulario del robot (no mientras se escribe en él)
@@ -1286,7 +1486,7 @@ function pintarSelPrueba() {
 function cargarNivelesTexto(texto) {
   let nuevos;
   try { nuevos = leerNiveles(texto); } catch (e) { alert('No pude leer los niveles: ' + e.message); return; }
-  nGuardarUndo(); NV.niveles = nuevos; nSel = 0; nRob = -1; nCambio(true);
+  nGuardarUndo(); NV.niveles = nuevos; nSel = 0; nParte = nuevos[0].parteIni; nRob = -1; nCambio(true);
 }
 document.getElementById('ndescargar').addEventListener('click', () => {
   const a = document.createElement('a');
@@ -1304,7 +1504,7 @@ document.getElementById('narchivo').addEventListener('change', async e => {
   const f = e.target.files[0]; e.target.value = ''; if (f) cargarNivelesTexto(await f.text());
 });
 document.getElementById('ndescartar').addEventListener('click', () => {
-  nGuardarUndo(); NV = { niveles: copia(NBASE) }; nSel = 0; nRob = -1;
+  nGuardarUndo(); NV = { niveles: copia(NBASE) }; nSel = 0; nParte = NBASE[0].parteIni; nRob = -1;
   document.getElementById('naviso').style.display = 'none'; nCambio(true);
 });
 
@@ -1312,15 +1512,16 @@ document.getElementById('ndescartar').addEventListener('click', () => {
 (function () {
   let b = null;
   try { b = JSON.parse(localStorage.getItem('atari-juego-niveles')); } catch (e) {}
-  if (b && Array.isArray(b.niveles) && b.niveles.length && JSON.stringify(b.niveles) !== JSON.stringify(NBASE)) {
-    NV = b; document.getElementById('naviso').style.display = 'block';
+  if (b && Array.isArray(b.niveles) && b.niveles.length) {
+    b.niveles = b.niveles.map(migrarNivel);   // borradores de antes de las partes
+    if (JSON.stringify(b.niveles) !== JSON.stringify(NBASE)) { NV = b; document.getElementById('naviso').style.display = 'block'; }
   }
   fetch('niveles.asm').then(r => r.ok ? r.text() : '').catch(() => '').then(t => {
     if (!t) return;
     try { NBASE = leerNiveles(t); } catch (e) { return; }
     if (document.getElementById('naviso').style.display !== 'block') { NV = { niveles: copia(NBASE) }; nAjustar(); nCambio(true); }
   });
-  nAjustar(); nCambio(true); cargarNivel(0);
+  nParte = nivelAct().parteIni; nAjustar(); nCambio(true); cargarNivel(0);
   window.nListo = true;
 })();
 

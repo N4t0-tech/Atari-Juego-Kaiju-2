@@ -13,6 +13,7 @@
 ;   enemigos.asm  robots enemigos, contactos con el jugador
 ;   balaenemiga.asm  tiradores: disparos de los robots (players 2 y 3)
 ;   celulas.asm   celulas (objetos a recoger)
+;   partes.asm    niveles de varias partes (pantallas)
 ;   etapas.asm    titulo, etapas y mensajes
 ;   datos.asm     variables y graficos del sprite
 ;   kaiju_*.asm   recursos de Kaiju (graficos, titulo); kaiju_titulo.asm
@@ -73,6 +74,7 @@ etapa_sig
 loop
         jsr esperar_paso
         jsr mover_jugador
+        jsr ver_salida          ; paso a otra parte del nivel
         jsr animar_jugador
         jsr dibujar_jugador
         jsr actualizar_bala
@@ -164,10 +166,17 @@ iniciar
         icl "enemigos.asm"
         icl "balaenemiga.asm"
         icl "celulas.asm"
+        icl "partes.asm"
         icl "etapas.asm"
         icl "datos.asm"
 
         icl "kaiju_graficos.asm"
+
+        ; RAM para las partes del nivel descomprimidas (no va en el .xex)
+MAPAS   = *
+        .if MAPAS + MAXPARTES*920 > $6000
+        .error "No entran los MAPAS de las partes antes de $6000"
+        .endif
 
         ; el titulo se carga en $6000 y $7000 (bloques de 4 KB para ANTIC)
         .if * > $6000

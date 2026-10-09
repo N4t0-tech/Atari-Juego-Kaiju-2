@@ -59,9 +59,27 @@ tmp3    .byte 0         ; auxiliares
 ox_r    .byte 0
 oy_r    .byte 0
 
+; --- partes del nivel (partes.asm) ---
+MAXPARTES = 4           ; partes por nivel (cada una usa 920 bytes de MAPAS)
+parte   .byte 0         ; parte en pantalla
+pcol    .byte 0         ; su columna y fila en la cuadricula
+pfil    .byte 0
+pancho  .byte 1         ; partes de ancho y de alto del nivel
+palto   .byte 1
+npartes .byte 1
+salida  .byte 0         ; SAL_*: por donde quiso salir el jugador este paso
+dn_p    .byte 0         ; auxiliares de dibujar_nivel
+dn_finl .byte 0
+dn_finh .byte 0
+mapas_lo
+        :MAXPARTES .byte <(MAPAS+#*920)
+mapas_hi
+        :MAXPARTES .byte >(MAPAS+#*920)
+
 ; --- robots enemigos del nivel (enemigos.asm), hasta MAXROB ---
-MAXROB  = 10
+MAXROB  = 16            ; en todo el nivel (todas sus partes)
 nrob    .byte 0
+rob_parte :MAXROB .byte 0       ; parte del nivel donde esta
 rob_x   :MAXROB .byte 0 ; casilla de arriba a la izquierda de sus 2 x 2 caracteres
 rob_y   :MAXROB .byte 0
 rob_dira :MAXROB .byte 0        ; patrulla: direccion de la 1a mitad del recorrido
@@ -113,9 +131,10 @@ ti_dir  .byte 0                 ; auxiliar (libre_dir)
 eb_icono .byte %01100000,%11110000,%11110000,%01100000  ; 4 x 4, bits altos
 
 ; --- celulas del nivel (celulas.asm), hasta MAXCEL ---
-MAXCEL  = 18
+MAXCEL  = 18            ; en todo el nivel (el HUD muestra hasta 18)
 ncel    .byte 0
 celrest .byte 0         ; celulas que faltan recoger
+cel_parte :MAXCEL .byte 0       ; parte del nivel donde esta
 cel_x   :MAXCEL .byte 0
 cel_y   :MAXCEL .byte 0
 cel_viva :MAXCEL .byte 0

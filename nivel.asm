@@ -191,9 +191,10 @@ lpa_s   inx
         bne lpa
         rts
 
-; pone el nivel «etapa» (niveles.asm) en las filas 1-23 y al jugador en su
-; inicio. El mapa viene comprimido: $FF, n, v = n veces v; otro byte = tal
-; cual. Deja ptr justo detras del mapa (robots y celulas, cargar_robots)
+; lee el nivel «etapa» (niveles.asm): cabecera (parte inicial, inicio del
+; jugador, partes de ancho y de alto) y descomprime cada parte en su MAPAS
+; (partes.asm). Los mapas vienen comprimidos: $FF, n, v = n veces v; otro
+; byte = tal cual. Deja ptr justo detras (robots y celulas, cargar_robots)
 dibujar_nivel
         lda etapa
         asl
@@ -202,14 +203,44 @@ dibujar_nivel
         sta ptr
         lda niveles+1,x
         sta ptr+1
-        jsr leer_nivel  ; 2 bytes de cabecera: inicio del jugador
+        jsr leer_nivel
+        sta parte
+        jsr leer_nivel  ; inicio del jugador
         sta px
         jsr leer_nivel
         sta py
-        lda #<(PANTALLA+40)
-        sta ptr2
-        lda #>(PANTALLA+40)
-        sta ptr2+1
+        jsr leer_nivel
+        sta pancho
+        jsr leer_nivel
+        sta palto
+        lda parte       ; pcol = parte % pancho, pfil = parte / pancho
+        ldx #0
+dn_div  cmp pancho
+        bcc dn_res
+        sbc pancho
+        inx
+        jmp dn_div
+dn_res  sta pcol
+        stx pfil
+        lda #0          ; npartes = pancho * palto
+        ldx palto
+dn_mul  clc
+        adc pancho
+        dex
+        bne dn_mul
+        sta npartes
+        lda #0
+        sta dn_p
+dn_parte
+        lda dn_p        ; destino: MAPAS de la parte, hasta +920
+        jsr dir_mapa
+        lda ptr2
+        clc
+        adc #<920
+        sta dn_finl
+        lda ptr2+1
+        adc #>920
+        sta dn_finh
 dn_sig  jsr leer_nivel
         ldx #1          ; un caracter suelto...
         cmp #$FF
@@ -224,12 +255,16 @@ dn_pon  ldy #0
         inc ptr2+1
 dn_n    dex
         bne dn_pon
-        lda ptr2        ; hasta llenar la pantalla (920 caracteres)
-        cmp #<(PANTALLA+960)
+        lda ptr2
+        cmp dn_finl
         bne dn_sig
         lda ptr2+1
-        cmp #>(PANTALLA+960)
+        cmp dn_finh
         bne dn_sig
+        inc dn_p
+        lda dn_p
+        cmp npartes
+        bcc dn_parte
         rts
 
 ; A = siguiente byte del nivel en ptr (y avanza ptr). Conserva X.

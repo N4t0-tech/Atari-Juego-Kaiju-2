@@ -35,6 +35,9 @@ pintar_celulas
         ldx #0
 pc_cel  cpx ncel
         bcs pc_fin
+        lda cel_parte,x ; solo las de la parte en pantalla
+        cmp parte
+        bne pc_sig
         lda cel_viva,x
         beq pc_sig
         jsr dir_celula
