@@ -1212,7 +1212,7 @@ function pintarFormRobot() {
   cont.querySelectorAll('[data-k]').forEach(el => el.addEventListener('change', () => {
     const v = parseInt(el.value, 10); if (isNaN(v)) { el.value = r[el.dataset.k]; return; }
     const rr = nivelAct().robots[nRob]; if (!rr) return;
-    nGuardarUndo(); rr[el.dataset.k] = clamp(v, +el.min, +el.max); el.value = rr[el.dataset.k]; nCambio();
+    nGuardarUndo(); rr[el.dataset.k] = el.type === 'number' ? clamp(v, +el.min, +el.max) : v; el.value = rr[el.dataset.k]; nCambio();
   }));
   cont.querySelectorAll('[data-z]').forEach(b => b.addEventListener('click', () => {
     const z = b.dataset.z, rr = nivelAct().robots[nRob];
