@@ -69,8 +69,12 @@ bal_cel and #$7F
         sta fin
         jmp matar
 bal_rob cmp #$34
+        bcc bal_gol
+        cmp #TIROCLASE    ; tirador: $40-$57
+        bcc matar
+        cmp #TIROCLASE+$18
         bcs matar
-        jsr golpear_enemigo
+bal_gol jsr golpear_enemigo
 matar   lda #0
         sta activa
         rts

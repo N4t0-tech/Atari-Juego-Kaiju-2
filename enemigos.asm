@@ -2,7 +2,7 @@
 ;
 ; Cada robot son 2 x 2 caracteres de la pantalla (no sprites), en la casilla
 ; rob_x/rob_y. Se actualizan cada 11 frames y avanzan una casilla cada 2
-; actualizaciones (como en el original). Patrullan con rob_dira la primera
+; actualizaciones (como en el original); los tiradores ademas disparan (balaenemiga.asm). Patrullan con rob_dira la primera
 ; mitad del recorrido y rob_dirb la segunda; cuando el jugador entra en su
 ; zona de vigilancia pasan a perseguirlo. Caracteres: rob_clase + 0/4
 ; (mirando a la izquierda, direcciones 0-3) o + $10/$14 (4-8), alternando.
@@ -47,6 +47,10 @@ cr_rob  cpx nrob
         sta rob_fase,x
         lda #1
         sta rob_estado,x
+        txa             ; los tiradores no disparan todos a la vez
+        clc
+        adc #3
+        sta rob_tiro,x
         inx
         jmp cr_rob
 cr_cel  ldx #0          ; celulas: pares (x, y)
@@ -60,7 +64,8 @@ cr_c2   cpx ncel
         sta cel_viva,x
         inx
         jmp cr_c2
-cr_dib  ldx #0          ; dibujar los robots
+cr_dib  jsr centro_jugador       ; hacia donde miran los tiradores
+        ldx #0          ; dibujar los robots
 cr_d2   cpx nrob
         bcs cr_fin
         jsr dibujar_robot
@@ -121,10 +126,21 @@ libre2x2
         ora (ptr2),y
         rts
 
-; dibuja el robot X segun su direccion y su fase
+; dibuja el robot X segun su direccion y su fase (el tirador, mirando al
+; jugador)
 dibujar_robot
         jsr dir_robot
-        lda rob_dir,x
+        lda rob_clase,x
+        and #$7F
+        cmp #TIROCLASE
+        bne dr_dir
+        lda rob_x,x
+        cmp pcx         ; C = 1: el jugador esta a su izquierda (o encima)
+        lda rob_clase,x
+        bcs dr_fase
+        adc #$10        ; C = 0
+        jmp dr_fase
+dr_dir  lda rob_dir,x
         cmp #4          ; 0-3: mirando a la izquierda; 4-8: a la derecha
         lda rob_clase,x
         bcc dr_fase
@@ -189,8 +205,7 @@ ae_nozona
         lda rob_estado,x
         cmp #2
         bne ae_patr
-        jsr hacia_jugador
-        sta rob_dir,x
+        jsr cazar       ; hacia el jugador (o el tirador, a su distancia)
         jmp ae_mover
 ae_patr lda rob_pasos,x ; patrulla: dira si paso < pasos/2, si no dirb
         beq ae_mover    ; sin recorrido: sigue en su direccion
@@ -215,8 +230,10 @@ ae_mover
         lda rob_fase,x
         eor #1
         sta rob_fase,x
+        beq ae_paso
+        jsr veloz       ; el tirador descubierto avanza en cada actualizacion
         bne ae_dib
-        ldy rob_dir,x
+ae_paso ldy rob_dir,x
         lda rob_x,x
         sta ox_r
         clc
@@ -235,6 +252,7 @@ ae_mover
         lda oy_r
         sta rob_y,x
 ae_dib  jsr dibujar_robot
+        jsr tirador
 ae_sig  inx
         jmp ae_rob
 

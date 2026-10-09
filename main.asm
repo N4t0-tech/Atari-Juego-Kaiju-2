@@ -11,6 +11,7 @@
 ;   hud.asm       HUD de Kaiju: energia, celulas que faltan y puntos
 ;   nivel.asm     pantallas, carga del nivel y choques con los bloques
 ;   enemigos.asm  robots enemigos, contactos con el jugador
+;   balaenemiga.asm  tiradores: disparos de los robots (players 2 y 3)
 ;   celulas.asm   celulas (objetos a recoger)
 ;   etapas.asm    titulo, etapas y mensajes
 ;   datos.asm     variables y graficos del sprite
@@ -43,6 +44,7 @@ loop
         jsr dibujar_jugador
         jsr actualizar_bala
         jsr actualizar_enemigos
+        jsr actualizar_balas_enemigas
         jsr dibujar_celulas
         jsr contactos
         jsr actualizar_sonido
@@ -114,8 +116,11 @@ iniciar
         sta COLOR3
         lda #0          ; fondo negro (COLOR4: fondo y borde en ANTIC 4/E)
         sta COLOR4
-        sta HPOSP2      ; P2 y P3 no se usan
+        sta HPOSP2      ; P2 y P3: balas de los tiradores
         sta HPOSP3
+        lda #$44
+        sta PCOLR2      ; color de las balas enemigas
+        sta PCOLR3
         rts
 
         icl "jugador.asm"
@@ -124,6 +129,7 @@ iniciar
         icl "hud.asm"
         icl "nivel.asm"
         icl "enemigos.asm"
+        icl "balaenemiga.asm"
         icl "celulas.asm"
         icl "etapas.asm"
         icl "datos.asm"

@@ -61,6 +61,10 @@ Si clonás con git, evitá que convierta los finales de línea del binario `kaij
 - **Células**: tocalas para juntarlas (+100). Cuando no queda ninguna, pasás al nivel siguiente.
   Si le disparás a una, perdés el nivel: −1 de energía y "TRY AGAIN".
 - **Robots**: patrullan su zona y te persiguen si entrás en ella. Tocarlos cuesta 1 de energía.
+- **Tiradores**: robots que te disparan cada 1,5 segundos más o menos cuando estás a menos de 14 casillas,
+  apuntando a donde estás. Cuando te descubren no te persiguen: se ponen a distancia de tiro y, si te
+  acercás, se escapan (al doble de velocidad que los otros robots).
+  Cada bala que te toca cuesta 1 de energía; las balas se frenan en los bloques.
   Cada disparo les quita una vida (las que tenga en el editor); destruirlos da +10.
 - **Bloques azules**: se rompen a tiros (+1). El borde verde también lastima.
 - **Energía**: empezás con 5; después de cada golpe hay un rato de invulnerabilidad. Con 0 es GAME OVER.
@@ -75,6 +79,7 @@ Si clonás con git, evitá que convierta los finales de línea del binario `kaij
 | `jugador.asm`          | Movimiento, animación y dibujo del jugador                     |
 | `bala.asm`             | Disparo                                                        |
 | `enemigos.asm`         | Robots: patrulla, persecución, contactos                       |
+| `balaenemiga.asm`      | Tiradores: sus disparos (players 2 y 3)                        |
 | `celulas.asm`          | Células                                                        |
 | `nivel.asm`            | Pantallas (juego, mensajes, título) y choques con los bloques  |
 | `etapas.asm`           | Título, niveles, mensajes y selector de debug                  |
@@ -100,7 +105,7 @@ En el panel **Niveles**:
    derecho borra. Con **Simetría** se pinta espejado.
 3. **Inicio** pone al jugador; **Célula** pone células (hasta 18); **Robot** pone robots (hasta 10).
    Arrastralos para moverlos y borralos con el botón derecho.
-4. Elegí un robot para cambiar su tipo, su vida, su patrulla (dos direcciones y pasos; la línea verde
+4. Elegí un robot para cambiar su tipo (normal o tirador, en dos colores), su vida, su patrulla (dos direcciones y pasos; la línea verde
    muestra el recorrido) y su zona de vigilancia (en amarillo; se puede dibujar con **Zona**).
 5. **▶ Probar en la escena** lo carga en la escena de prueba para caminarlo.
 6. **💾 Descargar niveles.asm**, guardalo en la carpeta del juego reemplazando el anterior y compilá.

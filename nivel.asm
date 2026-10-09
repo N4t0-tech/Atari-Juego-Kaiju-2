@@ -30,6 +30,13 @@ fnt_k2  lda kaiju_fuente+$100,x  ; los 200 restantes (57 x 8 = 456)
         inx
         cpx #200
         bne fnt_k2
+        ldx #63         ; y los 16 del tirador: $40-$47 y $50-$57
+fnt_t   lda fuente_tirador,x
+        sta FUENTE+TIROCLASE*8,x
+        lda fuente_tirador+64,x
+        sta FUENTE+(TIROCLASE+$10)*8,x
+        dex
+        bpl fnt_t
 
         ; lista de pantalla del juego
         ldx #dl_fin-dl_datos-1
@@ -155,6 +162,8 @@ modo_titulo
 limpiar_pmg
         lda #0
         sta activa
+        sta eb_activa
+        sta eb_activa+1
         tax
 lpm     sta PMG,x
         sta PMG+$100,x
@@ -276,12 +285,9 @@ ch_fila ldx fil0
         ldy col0
 ch_col  lda (ptr2),y
         beq ch_sig
-        and #$7F
-        cmp #$14
-        bcc ch_si       ; 1-$13: bloque
-        cmp #$34
-        bcc ch_sig      ; $14-$33: celula o enemigo
-ch_si   lda (ptr2),y
+        jsr solido
+        bcc ch_sig      ; celula o enemigo
+        lda (ptr2),y
         sec
         rts
 ch_sig  cpy col1        ; C = 0 mientras falten columnas (INY no toca C)
@@ -292,6 +298,22 @@ ch_sig  cpy col1        ; C = 0 mientras falten columnas (INY no toca C)
         inc fil0
         bcc ch_fila
         clc
+        rts
+
+; C = 1 si el caracter A (no 0) es un bloque; C = 0 si es una celula ($14-$1B)
+; o un robot ($1C-$33, tiradores $40-$57), tambien en inverso. Conserva X e Y.
+solido  and #$7F
+        cmp #$14
+        bcc so_si
+        cmp #$34
+        bcc so_no
+        cmp #TIROCLASE
+        bcc so_si
+        cmp #TIROCLASE+$18
+        bcc so_no
+so_si   sec
+        rts
+so_no   clc
         rts
 
 ; C = 1 si la casilla de la linea A y el HPOS X tiene algo. Devuelve A = el

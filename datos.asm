@@ -77,6 +77,40 @@ rob_paso :MAXROB .byte 0        ; paso de la patrulla
 rob_estado :MAXROB .byte 0      ; 1 = patrulla, 2 = persigue al jugador
 rob_vida :MAXROB .byte 0        ; disparos que aguanta
 rob_fase :MAXROB .byte 0        ; animacion; avanza cuando vuelve a 0
+rob_tiro :MAXROB .byte 0        ; tiradores: actualizaciones hasta el proximo disparo
+
+; --- tiradores (balaenemiga.asm): robots con rob_clase / (fuente_tirador)
+; disparan al jugador cada TIRO_ESPERA actualizaciones (unos 2 segundos). Sus
+; balas son los players 2 y 3 (una cada uno, color PCOLR2/3), 4 x 4
+TIROCLASE = $40         ; primer caracter del tirador ($C0 = inverso, COLOR3)
+TIRO_ESPERA = 4          ; unos 1,5 segundos
+DIST_MIN = 6            ; distancia (casillas) que el tirador quiere mantener:
+DIST_MAX = 14           ; se aleja si es menor y se acerca si es mayor
+MAXEB   = 2
+eb_activa :MAXEB .byte 0        ; 1 = la bala enemiga esta en vuelo
+eb_x    :MAXEB .byte 0          ; HPOS de su esquina
+eb_y    :MAXEB .byte 0          ; linea PMG de su esquina
+eb_dx   :MAXEB .byte 0          ; velocidad por paso
+eb_dy   :MAXEB .byte 0
+eb_slot .byte 0                 ; auxiliares
+eb_i    .byte 0
+; apuntar: velocidad (sin signo) de la bala enemiga en las 16 direcciones;
+; 0-2 = domina x (recta, 22,5 y 45 grados), 3-5 = domina y
+ap_vx   .byte 4,4,3, 0,2,3
+ap_vy   .byte 0,3,6, 8,7,6
+ap_sx   .byte 0                 ; 1 = hacia la izquierda
+ap_sy   .byte 0                 ; 1 = hacia arriba
+ap_ax   .byte 0                 ; |dx| / 2 y |dy| / 4
+ap_ay   .byte 0
+ap_big  .byte 0
+ap_small .byte 0
+; huida del tirador: segun la direccion hacia el jugador (0-7), 5 direcciones
+; para alejarse en orden de preferencia: la opuesta, sus dos vecinas y las
+; dos de costado
+huida   .byte 4,6,5,7,3, 5,4,3,6,2, 6,7,4,1,5, 7,1,6,0,4
+        .byte 0,2,1,3,7, 1,0,7,2,6, 2,3,0,5,1, 3,5,2,4,0
+ti_dir  .byte 0                 ; auxiliar (libre_dir)
+eb_icono .byte %01100000,%11110000,%11110000,%01100000  ; 4 x 4, bits altos
 
 ; --- celulas del nivel (celulas.asm), hasta MAXCEL ---
 MAXCEL  = 18
@@ -97,9 +131,10 @@ persigue .byte 0,1,7, 2,8,6, 3,5,4
 SND_DISPARO = 0
 SND_RECOGER = 1
 SND_GOLPE   = 2
-snd_base .byte 20,60,40
-snd_paso .byte 6,$FC,12
-snd_dist .byte $A0,$A0,$80      ; $A = tono puro, $8 = ruido
+SND_TIRO    = 3
+snd_base .byte 20,60,40,90
+snd_paso .byte 6,$FC,12,$FA
+snd_dist .byte $A0,$A0,$80,$A0  ; $A = tono puro, $8 = ruido
 
 txt_level .byte $28,$29,$2A,$29,$28     ; "LEVEL" con la fuente de Kaiju
 hud_dirty .byte 1       ; 1 = hay que redibujar el HUD
@@ -150,6 +185,26 @@ dl_datos .byte $70,$70,$70
         .byte $41,<DLIST,>DLIST
 dl_fin
 
+
+; caracteres del tirador (ANTIC 4, 2 x 2 como los otros robots), copiados a
+; FUENTE desde el codigo $40: $40-$43 mirando a la izquierda, $44-$47 su
+; 2a fase, $50-$57 lo mismo mirando a la derecha (dibujar_robot suma $10/4)
+fuente_tirador          .byte $0F,$3F,$35,$36,$35,$0F,$03,$AF   ; $40 izq. fase 0
+                        .byte $F0,$FC,$5C,$9C,$5C,$F0,$C0,$FF   ; $41 izq. fase 0
+                        .byte $AF,$03,$3F,$33,$33,$3F,$30,$F0   ; $42 izq. fase 0
+                        .byte $FF,$C3,$FC,$CC,$CC,$FC,$0C,$0F   ; $43 izq. fase 0
+                        .byte $0F,$3F,$35,$35,$35,$0F,$03,$2F   ; $44 izq. fase 1
+                        .byte $F0,$FC,$5C,$AC,$5C,$F0,$C0,$FF   ; $45 izq. fase 1
+                        .byte $2F,$03,$3F,$33,$33,$3F,$C0,$C0   ; $46 izq. fase 1
+                        .byte $FF,$C3,$FC,$CC,$CC,$FC,$03,$03   ; $47 izq. fase 1
+                        .byte $0F,$3F,$35,$36,$35,$0F,$03,$FF   ; $50 der. fase 0
+                        .byte $F0,$FC,$5C,$9C,$5C,$F0,$C0,$FA   ; $51 der. fase 0
+                        .byte $FF,$C3,$3F,$33,$33,$3F,$30,$F0   ; $52 der. fase 0
+                        .byte $FA,$C0,$FC,$CC,$CC,$FC,$0C,$0F   ; $53 der. fase 0
+                        .byte $0F,$3F,$35,$3A,$35,$0F,$03,$FF   ; $54 der. fase 1
+                        .byte $F0,$FC,$5C,$5C,$5C,$F0,$C0,$F8   ; $55 der. fase 1
+                        .byte $FF,$C3,$3F,$33,$33,$3F,$C0,$C0   ; $56 der. fase 1
+                        .byte $F8,$C0,$FC,$CC,$CC,$FC,$03,$03   ; $57 der. fase 1
 
 ; tabla para espejar el sprite (bit invertido): revtab[$3C] = $3C, etc.
 revtab  .byte $00,$80,$40,$C0,$20,$A0,$60,$E0

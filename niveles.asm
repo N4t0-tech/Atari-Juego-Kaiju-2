@@ -43,5 +43,5 @@ nivel1                  ; Primer nivel
                         .byte 3,$FF,38,2,3                      ; fila 23
                         .byte 2,6                               ; robots, celulas
                         .byte 8,4,6,2,16,$9C,1,0,18,1,7         ; robot 0
-                        .byte 30,18,2,6,16,$9C,1,21,39,16,23    ; robot 1
+                        .byte 30,18,2,6,16,$C0,1,21,39,16,23    ; robot 1
                         .byte 3,3,35,3,3,20,35,20,9,11,29,11    ; celulas (x, y)

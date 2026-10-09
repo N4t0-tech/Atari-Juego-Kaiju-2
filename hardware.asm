@@ -7,8 +7,8 @@ STICK0  = $0278         ; joystick 1 (bit en 0 = presionado)
 STRIG0  = $0284         ; boton de disparo (0 = presionado)
 PCOLR0  = $02C0         ; color del jugador 0
 PCOLR1  = $02C1         ; color del jugador 1
-PCOLR2  = $02C2         ; color del jugador 2 (vidas del HUD)
-PCOLR3  = $02C3         ; color del jugador 3 (vidas del HUD)
+PCOLR2  = $02C2         ; color del jugador 2 (bala enemiga 0)
+PCOLR3  = $02C3         ; color del jugador 3 (bala enemiga 1)
 COLOR0  = $02C4         ; color 0 del playfield (pixel 01 en ANTIC 4/E)
 COLOR1  = $02C5         ; texto del modo texto (GR.0)
 COLOR3  = $02C7         ; color 3 (lo usan los missiles con GPRIOR bit 4)
@@ -25,8 +25,8 @@ VDSLST  = $0200         ; vector de la DLI
 ; --- GTIA / ANTIC ---
 HPOSP0  = $D000         ; posicion horizontal del jugador 0
 HPOSP1  = $D001         ; posicion horizontal del jugador 1
-HPOSP2  = $D002         ; posicion horizontal del jugador 2 (vidas izq)
-HPOSP3  = $D003         ; posicion horizontal del jugador 3 (vidas der)
+HPOSP2  = $D002         ; posicion horizontal del jugador 2 (bala enemiga 0)
+HPOSP3  = $D003         ; posicion horizontal del jugador 3 (bala enemiga 1)
 HPOSM0  = $D004         ; posicion horizontal del missile 0 (bala)
 HPOSM1  = $D005         ; posicion horizontal del missile 1 (bala, 2a mitad)
 GRACTL  = $D01D         ; activa jugadores y missiles
