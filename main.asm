@@ -15,15 +15,48 @@
 ;   celulas.asm   celulas (objetos a recoger)
 ;   etapas.asm    titulo, etapas y mensajes
 ;   datos.asm     variables y graficos del sprite
-;   niveles.asm   niveles: mapas, robots y celulas (editor-sprite.html)
-;   kaiju_*.asm   recursos de Kaiju (graficos, titulo); kaiju_titulo.asm va
-;                 al final: ocupa $6000-$7EAF
+;   kaiju_*.asm   recursos de Kaiju (graficos, titulo); kaiju_titulo.asm
+;                 ocupa $6000-$7EAF
+;   niveles.asm   niveles: mapas, robots y celulas (editor-sprite.html), en
+;                 su propio bloque desde $9100 (ver apagar_basic)
 
         .ifndef DEBUG
 DEBUG   = 0             ; 1 = selector de nivel en el titulo (mads -d:DEBUG=1)
         .endif
 
         icl "hardware.asm"
+
+; --- se ejecuta apenas se carga (INI), antes que el resto del juego: apaga el
+; BASIC de los XL/XE (8 KB en $A000-$BFFF) para poder cargar los niveles ahi,
+; y reabre la pantalla del OS (E:) para que se mude arriba de todo ($BC20) y
+; no quede donde van los niveles. En un 400/800 no hace falta y no molesta.
+        org PMG         ; zona de los sprites: el juego la borra despues
+apagar_basic
+        lda PORTB
+        ora #2
+        sta PORTB
+        lda #1
+        sta BASICF
+        lda #$C0
+        sta RAMTOP
+        ldx #0          ; IOCB 0 = E:, cerrar y volver a abrir
+        lda #12         ; CLOSE
+        sta ICCOM
+        jsr CIOV
+        ldx #0
+        lda #3          ; OPEN
+        sta ICCOM
+        lda #<nombre_e
+        sta ICBAL
+        lda #>nombre_e
+        sta ICBAH
+        lda #12         ; lectura y escritura
+        sta ICAX1
+        lda #0
+        sta ICAX2
+        jmp CIOV
+nombre_e .byte 'E:',$9B
+        ini apagar_basic
 
         org $2000
 
@@ -135,11 +168,6 @@ iniciar
         icl "datos.asm"
 
         icl "kaiju_graficos.asm"
-        icl "niveles.asm"       ; generado con editor-sprite.html (panel Niveles)
-
-        .if NUM_NIVELES < 1 || NUM_NIVELES > 99
-        .error "NUM_NIVELES tiene que estar entre 1 y 99"
-        .endif
 
         ; el titulo se carga en $6000 y $7000 (bloques de 4 KB para ANTIC)
         .if * > $6000
@@ -150,6 +178,17 @@ iniciar
         ; el programa no puede pisar la memoria de los sprites
         .if * > PMG
         .error "El programa pasa de PMG: mover PMG mas arriba en hardware.asm"
+        .endif
+
+        ; los niveles, en su propio bloque (RAM del BASIC, ver apagar_basic)
+        org ZONA_NIVELES
+        icl "niveles.asm"       ; generado con editor-sprite.html (panel Niveles)
+
+        .if NUM_NIVELES < 1 || NUM_NIVELES > 99
+        .error "NUM_NIVELES tiene que estar entre 1 y 99"
+        .endif
+        .if * > ZONA_NIVELES_FIN
+        .error "Los niveles no entran: pasan de ZONA_NIVELES_FIN ($BC00)"
         .endif
 
         run start

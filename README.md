@@ -22,6 +22,9 @@ altirra juego.xex
 
 `juego.xex` no está en el repo (se genera al compilar).
 
+En un Atari XL/XE real no hace falta apretar OPTION al cargarlo: el juego apaga el BASIC solo
+(necesita esa memoria para los niveles).
+
 ### Build de debug
 
 ```sh
@@ -111,7 +114,8 @@ En el panel **Niveles**:
 6. **💾 Descargar niveles.asm**, guardalo en la carpeta del juego reemplazando el anterior y compilá.
 
 Para seguir editando otro día, el editor recuerda tus niveles en el navegador; también podés abrir un
-`niveles.asm` con **Abrir niveles.asm…**. Abajo se ve cuánta memoria ocupan (caben unos 25 niveles).
+`niveles.asm` con **Abrir niveles.asm…**. Abajo se ve cuánta memoria ocupan: los niveles tienen 11 KB para
+ellos solos (unos 25 grandes como los de Kaiju o 45 sencillos).
 
 ## Diferencias con el original
 

@@ -909,7 +909,7 @@ nivel1                  ; Primer nivel
                         .byte 30,18,2,6,16,$C0,1,21,39,16,23    ; robot 1
                         .byte 3,3,35,3,3,20,35,20,9,11,29,11    ; celulas (x, y)
 `;
-const PRESUPUESTO = 11028;   // bytes libres para niveles.asm en $2000-$5FFF (aprox., depende del código)
+const PRESUPUESTO = 0xBC00 - 0x9100;   // ZONA_NIVELES-ZONA_NIVELES_FIN (hardware.asm): 11008 bytes solo para niveles
 const NTILES = [0, 2, 3, 4, 5, ...Array.from({ length: 14 }, (_, i) => 6 + i), 0x34, 0x35, 0x36, 0x37, 0x38];
 const NOMBRE_TILE = { 0:'Vacío (borra)', 2:'Borde horizontal: lastima al chocarlo', 3:'Borde vertical / esquina: lastima al chocarlo',
   4:'Muro', 5:'Bloque azul: se rompe a tiros (+1 punto)' };
@@ -1258,7 +1258,7 @@ function pintarAvisos() {
   const total = NV.niveles.reduce((s, N) => s + bytesNivel(N), 0);
   const m = document.getElementById('nmemoria');
   m.textContent = `${NV.niveles.length} nivel${NV.niveles.length === 1 ? '' : 'es'} · ${total} bytes de ~${PRESUPUESTO} libres` +
-    ` (este: ${bytesNivel(nivelAct())}).` + (total > PRESUPUESTO ? ' ¡No entran! mads va a dar error de $6000.' : '');
+    ` (este: ${bytesNivel(nivelAct())}).` + (total > PRESUPUESTO ? ' ¡No entran! mads va a dar error de ZONA_NIVELES_FIN.' : '');
   m.style.color = total > PRESUPUESTO ? 'var(--peligro)' : '';
 }
 

@@ -21,6 +21,16 @@ SAVMSC  = $58           ; puntero a la memoria de pantalla (GR.0 del OS; ya no s
 SDLSTL  = $0230         ; shadow de la lista de pantalla (byte bajo)
 SDLSTH  = $0231         ; (byte alto)
 VDSLST  = $0200         ; vector de la DLI
+RAMTOP  = $6A           ; pagina donde termina la RAM (el OS pone su pantalla debajo)
+BASICF  = $03F8         ; XL/XE: 1 = BASIC apagado (el OS lo respeta al RESET)
+
+; --- CIO (para reabrir la pantalla del OS al apagar el BASIC) ---
+CIOV    = $E456         ; llamada a CIO (X = IOCB * 16)
+ICCOM   = $0342         ; comando del IOCB
+ICBAL   = $0344         ; direccion del buffer / nombre (bajo, alto)
+ICBAH   = $0345
+ICAX1   = $034A         ; auxiliares (modo de apertura)
+ICAX2   = $034B
 
 ; --- GTIA / ANTIC ---
 HPOSP0  = $D000         ; posicion horizontal del jugador 0
@@ -41,6 +51,9 @@ NMIEN   = $D40E         ; activa DLI ($80) y VBI ($40)
 ; --- ROM ---
 FUENTE_ROM = $E000      ; fuente del sistema (1 KB)
 
+; --- PIA ---
+PORTB   = $D301         ; XL/XE: bit 1 = 1 apaga el BASIC (bit 0 = ROM del OS)
+
 ; --- POKEY (sonido) ---
 AUDF1   = $D200         ; canal 1: frecuencia (valor mayor = tono mas grave)
 AUDC1   = $D201         ; canal 1: distorsion (4 bits altos) y volumen (bajos)
@@ -55,6 +68,8 @@ PMG     = $8000         ; bloque PMG a 1 linea (2 KB, alineado a 2 KB):
 FUENTE  = $8800         ; fuente del juego (1 KB, alineada a 1 KB)
 PANTALLA = $8C00        ; 24 filas x 40: fila 0 HUD, 1-23 nivel (960 bytes)
 DLIST   = $8FC0         ; lista de pantalla del juego (32 bytes, no cruza 1 KB)
-DLIST_T = $9000         ; lista de pantalla del titulo (209 bytes; $9000-$9BFF es
-                        ; RAM libre aunque este BASIC: la pantalla del OS no se usa)
-                        ; el programa ($2000 en adelante) debe terminar antes
+DLIST_T = $9000         ; lista de pantalla del titulo (209 bytes)
+ZONA_NIVELES = $9100    ; niveles.asm, hasta ZONA_NIVELES_FIN (~11 KB). Es RAM
+ZONA_NIVELES_FIN = $BC00 ; porque apagar_basic (main.asm) apaga el BASIC
+                        ; ($A000-$BFFF) y lleva la pantalla del OS a $BC20
+                        ; el programa ($2000 en adelante) termina antes de $6000
