@@ -1,4 +1,4 @@
-; nivel.asm - pantallas (juego, mensajes, titulo), nivel de Kaiju y choques
+; nivel.asm - pantallas (juego, mensajes, titulo), nivel y choques
 ;
 ; Pantalla de juego (DLIST): 24 filas de ANTIC 4 (caracteres multicolor) con
 ; la fuente de Kaiju; la fila 0 es el HUD. Como en el original no hay DLI.
@@ -182,47 +182,55 @@ lpa_s   inx
         bne lpa
         rts
 
-; copia el nivel «nivel» (0-5) a las filas 1-23 y pone al jugador en su inicio
+; pone el nivel «etapa» (niveles.asm) en las filas 1-23 y al jugador en su
+; inicio. El mapa viene comprimido: $FF, n, v = n veces v; otro byte = tal
+; cual. Deja ptr justo detras del mapa (robots y celulas, cargar_robots)
 dibujar_nivel
-        lda nivel
+        lda etapa
         asl
         tax
-        lda kaiju_niveles,x
+        lda niveles,x
         sta ptr
-        lda kaiju_niveles+1,x
+        lda niveles+1,x
         sta ptr+1
-        ldy #0          ; 2 bytes de cabecera: inicio del jugador
-        lda (ptr),y
+        jsr leer_nivel  ; 2 bytes de cabecera: inicio del jugador
         sta px
-        iny
-        lda (ptr),y
+        jsr leer_nivel
         sta py
-        lda ptr         ; saltar la cabecera
-        clc
-        adc #2
-        sta ptr
-        bcc niv_nc
-        inc ptr+1
-niv_nc  lda #<(PANTALLA+40)
+        lda #<(PANTALLA+40)
         sta ptr2
         lda #>(PANTALLA+40)
         sta ptr2+1
-        ldx #3          ; 920 bytes = 3 paginas + 152
-        ldy #0
-niv_pag lda (ptr),y
+dn_sig  jsr leer_nivel
+        ldx #1          ; un caracter suelto...
+        cmp #$FF
+        bne dn_pon
+        jsr leer_nivel  ; ... o una tira: n veces v
+        tax
+        jsr leer_nivel
+dn_pon  ldy #0
         sta (ptr2),y
-        iny
-        bne niv_pag
-        inc ptr+1
+        inc ptr2
+        bne dn_n
         inc ptr2+1
-        dex
-        bne niv_pag
-niv_res lda (ptr),y
-        sta (ptr2),y
-        iny
-        cpy #152
-        bne niv_res
+dn_n    dex
+        bne dn_pon
+        lda ptr2        ; hasta llenar la pantalla (920 caracteres)
+        cmp #<(PANTALLA+960)
+        bne dn_sig
+        lda ptr2+1
+        cmp #>(PANTALLA+960)
+        bne dn_sig
         rts
+
+; A = siguiente byte del nivel en ptr (y avanza ptr). Conserva X.
+leer_nivel
+        ldy #0
+        lda (ptr),y
+        inc ptr
+        bne ln_fin
+        inc ptr+1
+ln_fin  rts
 
 ; caja del robot en (px, py), en filas fil0-fil1 y columnas col0-col1: las 8
 ; columnas del sprite y sus lineas 2-21 (las filas 0-1 y 22-23 estan vacias)

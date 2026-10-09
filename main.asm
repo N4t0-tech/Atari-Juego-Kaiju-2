@@ -9,13 +9,14 @@
 ;   bala.asm      disparo y bala (missiles 0+1)
 ;   sonido.asm    efectos de sonido
 ;   hud.asm       HUD de Kaiju: energia, celulas que faltan y puntos
-;   nivel.asm     pantallas, nivel de Kaiju y choques con los bloques
+;   nivel.asm     pantallas, carga del nivel y choques con los bloques
 ;   enemigos.asm  robots enemigos, contactos con el jugador
 ;   celulas.asm   celulas (objetos a recoger)
 ;   etapas.asm    titulo, etapas y mensajes
 ;   datos.asm     variables y graficos del sprite
-;   kaiju_*.asm   recursos de Kaiju (graficos, niveles, robots, titulo);
-;                 kaiju_titulo.asm va al final: ocupa $6000-$7EAF
+;   niveles.asm   niveles: mapas, robots y celulas (editor-sprite.html)
+;   kaiju_*.asm   recursos de Kaiju (graficos, titulo); kaiju_titulo.asm va
+;                 al final: ocupa $6000-$7EAF
 
         .ifndef DEBUG
 DEBUG   = 0             ; 1 = selector de nivel en el titulo (mads -d:DEBUG=1)
@@ -52,17 +53,17 @@ loop
         bne fallo
         lda celrest
         bne loop
-        ; etapa superada
+        ; nivel superado
         inc etapa
         lda etapa
-        cmp #30
+        cmp #NUM_NIVELES
         bne etapa_sig
         lda #<kaiju_txt_super
         ldx #>kaiju_txt_super
         ldy #10
         jsr mensaje
         jmp partida
-fallo   ; se disparo a una celula: -1 de energia y se repite la etapa
+fallo   ; se disparo a una celula: -1 de energia y se repite el nivel
         dec energia
         beq perdio
         lda #<kaiju_txt_tryagain
@@ -128,8 +129,11 @@ iniciar
         icl "datos.asm"
 
         icl "kaiju_graficos.asm"
-        icl "kaiju_niveles.asm"
-        icl "kaiju_robots.asm"
+        icl "niveles.asm"       ; generado con editor-sprite.html (panel Niveles)
+
+        .if NUM_NIVELES < 1 || NUM_NIVELES > 99
+        .error "NUM_NIVELES tiene que estar entre 1 y 99"
+        .endif
 
         ; el titulo se carga en $6000 y $7000 (bloques de 4 KB para ANTIC)
         .if * > $6000

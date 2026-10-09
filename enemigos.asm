@@ -1,4 +1,4 @@
-; enemigos.asm - robots enemigos de Kaiju (datos de kaiju_robots.asm)
+; enemigos.asm - robots enemigos (datos de niveles.asm)
 ;
 ; Cada robot son 2 x 2 caracteres de la pantalla (no sprites), en la casilla
 ; rob_x/rob_y. Se actualizan cada 11 frames y avanzan una casilla cada 2
@@ -7,96 +7,55 @@
 ; zona de vigilancia pasan a perseguirlo. Caracteres: rob_clase + 0/4
 ; (mirando a la izquierda, direcciones 0-3) o + $10/$14 (4-8), alternando.
 
-; carga los robots y las celulas de la etapa «etapa» (DAT de kaiju_robots.asm)
+; carga los robots y las celulas del nivel, que siguen al mapa en niveles.asm
+; (ptr queda ahi tras dibujar_nivel): robots, celulas, 11 bytes por robot y
+; (x, y) por celula
 cargar_robots
-        lda etapa
-        asl
-        tax
-        lda kaiju_dats,x
-        sta ptr
-        lda kaiju_dats+1,x
-        sta ptr+1
-        ldy #0
-        lda (ptr),y
+        jsr leer_nivel
         sta nrob
-        iny
-        lda (ptr),y
+        jsr leer_nivel
         sta ncel
         sta celrest
-        lda #1          ; vida segun la etapa: 1, desde la 6 = 2, desde la 18 = 3
-        ldx etapa
-        cpx #6
-        bcc cr_vida
-        lda #2
-        cpx #18
-        bcc cr_vida
-        lda #3
-cr_vida sta tmp3
-        lda ptr         ; saltar la cabecera (2 bytes)
-        clc
-        adc #2
-        sta ptr
-        bcc cr_n1
-        inc ptr+1
-cr_n1   ldx #0
+        ldx #0
 cr_rob  cpx nrob
         bcs cr_cel
-        ldy #0          ; registro de 16 bytes (ver kaiju_robots.asm)
-        lda (ptr),y
+        jsr leer_nivel
         sta rob_x,x
-        iny
-        lda (ptr),y
+        jsr leer_nivel
         sta rob_y,x
-        ldy #5
-        lda (ptr),y
+        jsr leer_nivel
         sta rob_dira,x
         sta rob_dir,x
-        iny
-        lda (ptr),y
+        jsr leer_nivel
         sta rob_dirb,x
-        iny
-        lda (ptr),y
+        jsr leer_nivel
         sta rob_pasos,x
-        ldy #9
-        lda (ptr),y
+        jsr leer_nivel
         sta rob_clase,x
-        ldy #12
-        lda (ptr),y
-        sta rob_zy0,x
-        iny
-        lda (ptr),y
-        sta rob_zy1,x
-        iny
-        lda (ptr),y
+        jsr leer_nivel
+        sta rob_vida,x
+        jsr leer_nivel
         sta rob_zx0,x
-        iny
-        lda (ptr),y
+        jsr leer_nivel
         sta rob_zx1,x
+        jsr leer_nivel
+        sta rob_zy0,x
+        jsr leer_nivel
+        sta rob_zy1,x
         lda #0
         sta rob_paso,x
         sta rob_fase,x
         lda #1
         sta rob_estado,x
-        lda tmp3
-        sta rob_vida,x
-        lda ptr
-        clc
-        adc #16
-        sta ptr
-        bcc cr_n2
-        inc ptr+1
-cr_n2   inx
+        inx
         jmp cr_rob
 cr_cel  ldx #0          ; celulas: pares (x, y)
-        ldy #0
 cr_c2   cpx ncel
         bcs cr_dib
-        lda (ptr),y
+        jsr leer_nivel
         sta cel_x,x
-        iny
-        lda (ptr),y
+        jsr leer_nivel
         sta cel_y,x
-        iny
         lda #1
         sta cel_viva,x
         inx

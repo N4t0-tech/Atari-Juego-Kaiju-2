@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Editor de sprites — atari-juego</title>
+<title>Editor de sprites y niveles</title>
 <style>
   :root { --fondo:#15161a; --panel:#1f2127; --borde:#33363f; --texto:#e8e8ec; --suave:#9a9cab;
           --acento:#4fc3d9; --peligro:#e0605a; }
@@ -60,10 +60,32 @@
   textarea { width:100%; height:180px; background:#0c0d10; color:#8ef08e; border:1px solid var(--borde);
              border-radius:6px; font:12px/1.4 ui-monospace, monospace; padding:8px; }
   label { user-select:none; }
+
+  /* niveles */
+  .aviso { display:none; background:#3a3020; border:1px solid #7a6530; border-radius:8px; padding:8px 12px; margin-top:8px; }
+  .ncol { min-width:200px; }
+  #nlista { display:flex; flex-direction:column; gap:3px; max-height:360px; overflow:auto; }
+  #nlista div { padding:4px 8px; border:1px solid var(--borde); border-radius:6px; cursor:pointer; background:#262930;
+                white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:220px; }
+  #nlista div.sel { border-color:var(--acento); background:#203a41; }
+  #nlista small { color:var(--suave); }
+  #nmapa { width:100%; height:auto; aspect-ratio:640/384; background:#000; }
+  #ntiles { display:flex; flex-wrap:wrap; gap:4px; }
+  #ntiles canvas { width:32px; height:32px; border:2px solid var(--borde); border-radius:4px; cursor:pointer; background:#000; }
+  #ntiles canvas.sel { border-color:var(--acento); }
+  .campo { display:block; margin-top:8px; font-size:13px; }
+  .campo input, .campo select, #nrobot input, #nrobot select { background:#0c0d10; color:var(--texto); border:1px solid var(--borde);
+    border-radius:5px; padding:3px 5px; font:inherit; }
+  .campo input { width:100%; margin-top:2px; }
+  #nrobot table { border-collapse:collapse; font-size:13px; }
+  #nrobot td { padding:2px 4px 2px 0; }
+  #nrobot input[type=number] { width:4.2em; }
+  #navisos { margin:0; padding-left:18px; font-size:12px; color:#f0c674; }
+  #navisos li.ok { color:#8ef08e; list-style:none; margin-left:-18px; }
 </style>
 </head>
 <body>
-<h1>Editor de sprites</h1>
+<h1>Editor de sprites y niveles</h1>
 <p class="ayuda">
 Pinta con el botón izquierdo; el derecho borra. Elige el color en las casillas de abajo (<kbd>1</kbd>–<kbd>4</kbd>),
 la herramienta con <kbd>B</kbd> lápiz · <kbd>E</kbd> goma · <kbd>G</kbd> relleno, y deshaz con <kbd>Ctrl</kbd>+<kbd>Z</kbd>
@@ -74,11 +96,12 @@ Al terminar pulsa <strong>Exportar</strong> y pásame el texto: yo actualizo <co
 <div id="aviso">Se recuperó un borrador guardado de una sesión anterior.
   <button id="descartar">Descartar y cargar el del juego</button></div>
 
-<!-- ============ ROBOT ============ -->
+<!-- ============ KAIJU ============ -->
 <div class="panel">
-  <h2>Robot original · 8 × 12 · doble línea</h2>
-  <p class="ayuda"><strong>El juego ya no lo usa</strong>: ahora el jugador es el robot de Kaiju (sección siguiente).
-    Esta sección sigue editando <code>sprite</code>/<code>detalle</code> de <code>datos.asm</code>, que se conservan.</p>
+  <h2>Kaiju · poses 8 × 24 · Player 0 + Player 1 (resolución de 1 línea)</h2>
+  <p class="ayuda">Las poses de <code>kaiju_graficos.asm</code>. Cada fila es una sola línea de pantalla,
+    por eso los píxeles son el doble de anchos que de altos. El juego original siempre usaba la mezcla
+    (<code>GPRIOR = $31</code>): pintar en las dos capas da el 3er color.</p>
   <div class="fila">
     <div>
       <div class="grupo" id="herr">
@@ -88,51 +111,6 @@ Al terminar pulsa <strong>Exportar</strong> y pásame el texto: yo actualizo <co
         <button id="deshacer" title="Ctrl+Z">↶ Deshacer</button>
         <button id="rehacer" title="Ctrl+Y">↷ Rehacer</button>
       </div>
-      <canvas id="grobot" class="rejilla"></canvas>
-      <div class="grupo" style="margin-top:8px">
-        <button data-op="izq" title="Mover todo a la izquierda">←</button>
-        <button data-op="der" title="Mover todo a la derecha">→</button>
-        <button data-op="arr" title="Mover todo arriba">↑</button>
-        <button data-op="aba" title="Mover todo abajo">↓</button>
-        <button data-op="espejoH" title="Espejo horizontal">⇋ Espejo</button>
-        <button data-op="espejoV" title="Voltear vertical">⇵ Voltear</button>
-        <button data-op="limpiar">Limpiar</button>
-      </div>
-      <div class="grupo" id="copiara"></div>
-      <label><input type="checkbox" id="calco"> Calco: ver el frame «quieto» transparente debajo</label>
-    </div>
-
-    <div style="flex:1; min-width:280px">
-      <h3>Frame que editas (ciclo del juego: paso A, quieto, paso B, quieto)</h3>
-      <div class="frames" id="frames"></div>
-
-      <h3>Colores del robot</h3>
-      <div class="slots" id="slots"></div>
-      <p style="margin-top:10px">
-        <label><input type="checkbox" id="mezcla"> 3er color: mezcla de Player 0 + Player 1</label><br>
-        <small class="ayuda">El Atari da un solo color a cada player. Con la mezcla activada (bit 5 de
-        <code>GPRIOR</code>) los píxeles pintados en las dos capas a la vez muestran un 3er color, que el
-        hardware calcula combinando los dos (OR): no se elige aparte, cambia al cambiar los colores 1 y 2.</small>
-      </p>
-
-      <h3>Animación</h3>
-      <div class="fila">
-        <div style="text-align:center;font-size:12px"><canvas id="anim_d"></canvas>mirando →</div>
-        <div style="text-align:center;font-size:12px"><canvas id="anim_i"></canvas>← mirando</div>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- ============ KAIJU ============ -->
-<div class="panel">
-  <h2>Kaiju · poses 8 × 24 · Player 0 + Player 1 (resolución de 1 línea)</h2>
-  <p class="ayuda">Las poses de <code>kaiju_graficos.asm</code>. Cada fila es una sola línea de pantalla,
-    por eso los píxeles son el doble de anchos que de altos. El juego original siempre usaba la mezcla
-    (<code>GPRIOR = $31</code>): pintar en las dos capas da el 3er color. Usa las mismas herramientas
-    (lápiz, goma, relleno, deshacer) que el robot.</p>
-  <div class="fila">
-    <div>
       <canvas id="gkaiju" class="rejilla"></canvas>
       <div class="grupo" style="margin-top:8px">
         <button data-kop="izq">←</button><button data-kop="der">→</button>
@@ -180,18 +158,74 @@ Al terminar pulsa <strong>Exportar</strong> y pásame el texto: yo actualizo <co
   </div>
 </div>
 
+<!-- ============ NIVELES ============ -->
+<div class="panel" id="pniveles">
+  <h2>Niveles · <code>niveles.asm</code></h2>
+  <p class="ayuda">Los niveles del juego, en orden. Pinta los bloques con el botón izquierdo (el derecho borra);
+    con <strong>Célula</strong> y <strong>Robot</strong> haz clic para ponerlos, arrástralos para moverlos y
+    bórralos con el botón derecho. Al terminar pulsa <strong>Descargar niveles.asm</strong> y guárdalo en la
+    carpeta del juego (reemplazando el anterior), o pásame el texto de abajo. Deshacer: <kbd>Ctrl</kbd>+<kbd>Z</kbd>
+    después de tocar este panel. Tus niveles se guardan solos en este navegador.</p>
+  <div id="naviso" class="aviso">Se recuperó un borrador de niveles de una sesión anterior.
+    <button id="ndescartar">Descartar y cargar los del juego</button></div>
+  <div class="fila" style="margin-top:8px">
+    <div class="ncol">
+      <h3 style="margin-top:0">Niveles del juego</h3>
+      <div id="nlista"></div>
+      <div class="grupo" style="margin-top:8px"><button id="nnuevo">+ Nuevo</button><button id="nduplicar">Duplicar</button>
+        <button id="nborrar">Borrar</button></div>
+      <div class="grupo"><button id="nsubir">↑ Antes</button><button id="nbajar">↓ Después</button></div>
+      <label class="campo">Nombre <input id="nnombre" maxlength="40"></label>
+      <div class="grupo" style="margin-top:8px"><button id="nprobar">▶ Probar en la escena</button></div>
+      <p id="nmemoria" class="ayuda" style="font-size:12px"></p>
+    </div>
+    <div style="flex:1; min-width:320px; max-width:960px">
+      <div class="grupo" id="nherr">
+        <button data-nh="bloque" title="Pintar bloques">✏️ Bloques</button>
+        <button data-nh="rect" title="Rectángulo lleno de bloques">▭ Rectángulo</button>
+        <button data-nh="relleno" title="Rellenar una zona">🪣 Relleno</button>
+        <button data-nh="jugador" title="Dónde empieza el jugador">🤖 Inicio</button>
+        <button data-nh="celula" title="Poner / mover / borrar células">◆ Célula</button>
+        <button data-nh="robot" title="Poner / elegir / mover / borrar robots">👾 Robot</button>
+        <button data-nh="zona" title="Dibujar la zona de vigilancia del robot elegido">⬚ Zona</button>
+      </div>
+      <canvas id="nmapa" class="rejilla" width="640" height="384"></canvas>
+      <div id="nestado" class="ayuda" style="font-size:12px; min-height:1.5em; margin-top:4px"></div>
+      <div class="grupo">
+        <button id="ndeshacer">↶ Deshacer</button><button id="nrehacer">↷ Rehacer</button>
+        <label style="align-self:center"><input type="checkbox" id="nespejo"> Simetría izquierda ⇋ derecha</label>
+        <label style="align-self:center"><input type="checkbox" id="nrejilla" checked> Rejilla</label>
+        <button id="nborde">Poner el borde</button><button id="nvaciar">Vaciar el mapa</button>
+      </div>
+    </div>
+    <div class="ncol" style="width:280px">
+      <h3 style="margin-top:0">Bloque para pintar</h3>
+      <div id="ntiles"></div>
+      <div id="ntilenom" class="ayuda" style="font-size:12px; margin-top:4px"></div>
+      <h3>Robot elegido</h3>
+      <div id="nrobot"></div>
+      <h3>Avisos</h3>
+      <ul id="navisos"></ul>
+    </div>
+  </div>
+  <h3>niveles.asm</h3>
+  <div class="grupo"><button id="ndescargar">💾 Descargar niveles.asm</button><button id="ncopiar">Copiar</button>
+    <button id="nabrir">Abrir niveles.asm…</button><button id="npegar">Cargar el texto pegado</button></div>
+  <input type="file" id="narchivo" accept=".asm" style="display:none">
+  <textarea id="nexp" spellcheck="false" title="Puedes pegar aquí un niveles.asm y pulsar «Cargar el texto pegado»"></textarea>
+</div>
+
 <!-- ============ ESCENA ============ -->
 <div class="panel">
   <h2>Prueba en la pantalla del juego</h2>
   <p class="ayuda">Haz clic en la pantalla y juega: <kbd>flechas</kbd> mueven, <kbd>espacio</kbd> dispara.
-    Muestra el movimiento, la animación y el disparo del juego sobre los mapas de Kaiju (choques con los
+    Muestra el movimiento, la animación y el disparo del juego sobre los mapas del panel Niveles (choques con los
     bloques; la bala rompe los azules, +1 punto). Es una vista previa: no tiene enemigos, células, etapas
     ni el HUD de Kaiju; eso solo está en <code>juego.xex</code>.
     Si no la tocas, el robot camina solo.</p>
   <canvas id="escena" tabindex="0" width="320" height="192"></canvas>
   <div class="grupo" style="margin-top:8px; align-items:center">
-    Nivel: <select id="nivelsel"><option value="0">1</option><option value="1">2</option><option value="2">3</option>
-      <option value="3">4</option><option value="4">5</option><option value="5">6</option></select>
+    Nivel: <select id="nivelsel"></select>
     <span style="margin-left:12px">Vidas:</span> <button data-vidas="3" class="on">3</button><button data-vidas="2">2</button>
     <button data-vidas="1">1</button><button data-vidas="0">0</button>
     <label style="margin-left:12px"><input type="checkbox" id="sonido"> Sonido del disparo</label>
@@ -222,20 +256,10 @@ Al terminar pulsa <strong>Exportar</strong> y pásame el texto: yo actualizo <co
 
 <script>
 // ===================== datos iniciales =====================
-// OJO: copia de los bytes de datos.asm (sprite, detalle, vida_icono, bala_icono)
+// OJO: copia de los bytes de datos.asm (vida_icono, bala_icono)
 // y de los colores de main.asm (rutina iniciar). Si cambian allí hay que
 // actualizarlos aquí (lo mismo con kaiju_graficos.asm), o usar «Abrir…» / el fetch automático (solo con servidor http).
 const INICIAL = {
-  body: [
-    [0x00,0x3C,0x28,0x3C,0x20,0x18,0xFF,0xA5,0x3C,0x3C,0x24,0x66],
-    [0x00,0x3C,0x28,0x3C,0x20,0x18,0x7E,0xA5,0x3C,0x3C,0x28,0x4C],
-    [0x00,0x3C,0x28,0x3C,0x20,0x18,0x7E,0xA5,0x3C,0x3C,0x14,0x32]
-  ],
-  det: [
-    [0x18,0x00,0x14,0x42,0x1C,0x00,0x00,0x18,0x81,0x00,0x00,0x00],
-    [0x18,0x00,0x14,0x42,0x1C,0x00,0x00,0x18,0x41,0x00,0x00,0x00],
-    [0x18,0x00,0x14,0x42,0x1C,0x00,0x00,0x18,0x82,0x00,0x00,0x00]
-  ],
   // vida_icono: rejilla 3 filas x 11 columnas
   vida: [
     [1,0,1,0,1,0,1,0,1,0,1],
@@ -263,7 +287,7 @@ const INICIAL = {
         p1:[0x00,0x18,0x3C,0x3C,0x28,0x7E,0x20,0x3C,0x18,0x7E,0xA5,0xA5,0xA5,0xA5,0xBD,0x00,0x3C,0x24,0x24,0x24,0x36,0x00,0x00,0x00] }
   ] },
   // colores de main.asm
-  col: { p0:0xA8, p1:0x2A, vida:0x44, bala:0x26, fondo:0x00, texto:0x0E, mezcla:false }
+  col: { vida:0x44, bala:0x26, fondo:0x00, texto:0x0E }
 };
 const copia = o => JSON.parse(JSON.stringify(o));
 let BASE = copia(INICIAL);   // lo que tiene el juego (para «descartar borrador»)
@@ -286,15 +310,8 @@ const hex = v => '$' + v.toString(16).toUpperCase().padStart(2, '0');
 const NOMBRE_TONO = ['gris','dorado','naranja','rojo-naranja','rosa','violeta','azul violeta','azul',
   'azul','celeste','turquesa','verde azulado','verde','verde lima','oliva','naranja claro'];
 
-// color que muestra cada valor del robot: 0 nada, 1 P0, 2 P1, 3 ambos
-function colorRobot(idx) {
-  if (idx === 0) return null;
-  if (idx === 3) return PAL[S.col.mezcla ? (S.col.p0 | S.col.p1) : S.col.p0];
-  return PAL[idx === 1 ? S.col.p0 : S.col.p1];
-}
-
 // ===================== estado y deshacer =====================
-let frameSel = 0, herramienta = 'lapiz', pincel = 1;
+let herramienta = 'lapiz';
 const deshacerPila = [], rehacerPila = [];
 function guardarUndo() {
   deshacerPila.push(JSON.stringify(S));
@@ -310,14 +327,7 @@ function rehacer() {
   deshacerPila.push(JSON.stringify(S)); S = JSON.parse(rehacerPila.pop()); cambio();
 }
 
-// píxel del robot (frame i): 0 vacío, 1 cuerpo (P0), 2 detalle (P1), 3 los dos
 const bit = (v, c) => (v >> (7 - c)) & 1;
-function getRobot(i, x, y) { return bit(S.body[i][y], x) | (bit(S.det[i][y], x) << 1); }
-function setRobot(i, x, y, v) {
-  const m = 0x80 >> x;
-  S.body[i][y] = (v & 1) ? (S.body[i][y] | m) : (S.body[i][y] & ~m);
-  S.det[i][y]  = (v & 2) ? (S.det[i][y]  | m) : (S.det[i][y]  & ~m);
-}
 
 // ===================== rejillas editables =====================
 const rejillas = [];
@@ -388,10 +398,6 @@ function rellenar(o, x0, y0, v) {
   }
 }
 
-crearRejilla({ id:'grobot', w:8, h:12, cw:34, ch:34, marca:true,
-  get:(x, y) => getRobot(frameSel, x, y), set:(x, y, v) => setRobot(frameSel, x, y, v),
-  color:colorRobot, pincel:() => pincel,
-  calco:(x, y) => (document.getElementById('calco').checked && frameSel !== 0) ? colorRobot(getRobot(0, x, y)) : null });
 crearRejilla({ id:'gvida', w:11, h:3, cw:24, ch:24,
   get:(x, y) => S.vida[y][x], set:(x, y, v) => S.vida[y][x] = v,
   color:v => v ? PAL[S.col.vida] : null, pincel:() => 1 });
@@ -400,33 +406,11 @@ crearRejilla({ id:'gbala', w:2, h:4, cw:48, ch:24,   // cada columna = bloque de
   color:v => v ? PAL[S.col.bala] : null, pincel:() => 1 });
 
 // ===================== casillas de color =====================
-const SLOTS_ROBOT = [
-  { v:0, nombre:'Transparente', sub:'fondo' },
-  { v:1, nombre:'Color 1 · cuerpo', reg:'p0', sub:'Player 0 · PCOLR0' },
-  { v:2, nombre:'Color 2 · detalles', reg:'p1', sub:'Player 1 · PCOLR1' },
-  { v:3, nombre:'Color 3 · mezcla', sub:'P0 + P1 a la vez' }
-];
 function htmlSlot(muestra, nombre, sub, conBoton) {
   return `<span class="muestra ${muestra ? '' : 'transp'}" style="${muestra ? 'background:' + muestra : ''}"></span>
     <span>${nombre}<small>${sub}</small></span>${conBoton ? '<button>Cambiar</button>' : ''}`;
 }
 function pintarSlots() {
-  const cont = document.getElementById('slots'); cont.innerHTML = '';
-  SLOTS_ROBOT.forEach(s => {
-    const d = document.createElement('div');
-    const off = s.v === 3 && !S.col.mezcla;
-    d.className = 'slot' + (pincel === s.v ? ' sel' : '') + (off ? ' off' : '');
-    let sub = s.sub;
-    if (s.reg) sub += ' · ' + hex(S.col[s.reg]);
-    if (s.v === 3) sub = S.col.mezcla ? `${hex(S.col.p0 | S.col.p1)} (calculado)` : 'activa la mezcla abajo';
-    d.innerHTML = htmlSlot(colorRobot(s.v), `<kbd>${s.v + 1}</kbd> ${s.nombre}`, sub, !!s.reg);
-    d.title = off ? 'Activa «3er color» para usarlo' : '';
-    d.addEventListener('click', e => {
-      if (e.target.tagName === 'BUTTON') { abrirPaleta(s.reg, s.nombre); return; }
-      if (!off) { pincel = s.v; if (herramienta === 'goma') herramienta = 'lapiz'; refrescar(); }
-    });
-    cont.appendChild(d);
-  });
   const simple = (id, reg, nombre, sub) => {
     const d = document.createElement('div'); d.className = 'slot';
     d.innerHTML = htmlSlot(PAL[S.col[reg]], nombre, sub + ' · ' + hex(S.col[reg]), true);
@@ -475,26 +459,7 @@ function cerrarPaleta() { document.getElementById('paleta').style.display = 'non
 document.getElementById('pcerrar').addEventListener('click', cerrarPaleta);
 document.getElementById('paleta').addEventListener('click', e => { if (e.target.id === 'paleta') cerrarPaleta(); });
 
-// ===================== frames, herramientas y operaciones =====================
-const NOMBRES = ['Quieto', 'Paso A', 'Paso B'];
-const miniaturas = [];
-(function () {
-  const cont = document.getElementById('frames');
-  NOMBRES.forEach((n, i) => {
-    const d = document.createElement('div'); d.className = 'frame';
-    const cv = document.createElement('canvas'); cv.width = 8; cv.height = 12;
-    cv.style.width = '48px'; cv.style.height = '72px';
-    d.appendChild(cv); d.appendChild(document.createTextNode(n));
-    d.addEventListener('click', () => { frameSel = i; refrescar(); });
-    cont.appendChild(d); miniaturas.push({ d, cv });
-  });
-})();
-function dibujarRobot(ctx, i, ox, oy, esc, espejo) {
-  for (let y = 0; y < 12; y++) for (let x = 0; x < 8; x++) {
-    const c = colorRobot(getRobot(i, espejo ? 7 - x : x, y)); if (!c) continue;
-    ctx.fillStyle = c; ctx.fillRect(ox + x * esc, oy + y * esc, esc, esc);
-  }
-}
+// ===================== herramientas y operaciones =====================
 document.querySelectorAll('#herr [data-h]').forEach(b =>
   b.addEventListener('click', () => { herramienta = b.dataset.h; refrescar(); }));
 document.getElementById('deshacer').addEventListener('click', deshacer);
@@ -510,32 +475,9 @@ const OPS = {
   espejoV: a => a.slice().reverse(),
   limpiar: a => a.map(() => 0)
 };
-document.querySelectorAll('[data-op]').forEach(b => b.addEventListener('click', () => {
-  guardarUndo();
-  const f = OPS[b.dataset.op];
-  S.body[frameSel] = f(S.body[frameSel]); S.det[frameSel] = f(S.det[frameSel]);
-  cambio();
-}));
-function pintarCopiarA() {
-  const cont = document.getElementById('copiara'); cont.innerHTML = '';
-  NOMBRES.forEach((n, i) => {
-    if (i === frameSel) return;
-    const b = document.createElement('button'); b.textContent = `Copiar a «${n}»`;
-    b.addEventListener('click', () => {
-      guardarUndo(); S.body[i] = S.body[frameSel].slice(); S.det[i] = S.det[frameSel].slice(); cambio();
-    });
-    cont.appendChild(b);
-  });
-}
-document.getElementById('calco').addEventListener('change', () => refrescar());
-document.getElementById('mezcla').addEventListener('change', e => {
-  guardarUndo(); S.col.mezcla = e.target.checked;
-  if (!S.col.mezcla && pincel === 3) pincel = 1;
-  cambio();
-});
-
 document.addEventListener('keydown', e => {
   if (document.activeElement === escena || /TEXTAREA|INPUT/.test(document.activeElement.tagName)) return;
+  if (teclaNiveles(e)) return;
   if (e.key === 'Escape') cerrarPaleta();
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); e.shiftKey ? rehacer() : deshacer(); return; }
   if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') { e.preventDefault(); rehacer(); return; }
@@ -544,9 +486,8 @@ document.addEventListener('keydown', e => {
   if (k === 'b') herramienta = 'lapiz';
   else if (k === 'e') herramienta = 'goma';
   else if (k === 'g') herramienta = 'relleno';
-  else if ('1234'.includes(k) && k.length === 1) {
-    const v = +k - 1; if (v === 3 && !S.col.mezcla) return;
-    pincel = v; if (herramienta === 'goma') herramienta = 'lapiz';
+  else if ('1234'.includes(k) && k.length === 1) {   // color de las poses de Kaiju
+    kPincel = +k - 1; if (herramienta === 'goma') herramienta = 'lapiz';
   } else return;
   refrescar();
 });
@@ -613,13 +554,8 @@ function refrescar() {
   document.querySelectorAll('#herr [data-h]').forEach(b => b.classList.toggle('on', b.dataset.h === herramienta));
   document.getElementById('deshacer').disabled = !deshacerPila.length;
   document.getElementById('rehacer').disabled = !rehacerPila.length;
-  document.getElementById('mezcla').checked = S.col.mezcla;
-  miniaturas.forEach(({ d, cv }, i) => {
-    d.classList.toggle('sel', i === frameSel);
-    const c = cv.getContext('2d'); c.fillStyle = PAL[S.col.fondo]; c.fillRect(0, 0, 8, 12);
-    dibujarRobot(c, i, 0, 0, 1, false);
-  });
-  pintarSlots(); pintarCopiarA(); pintarKaiju();
+  pintarSlots(); pintarKaiju();
+  if (window.nListo) nRedibujar();   // el mapa de niveles usa COLOR3 y la pose de Kaiju
 }
 let tGuardar = 0;
 function cambio() {
@@ -627,10 +563,6 @@ function cambio() {
   clearTimeout(tGuardar);
   tGuardar = setTimeout(() => { try { localStorage.setItem('atari-juego-editor', JSON.stringify(S)); } catch (e) {} }, 300);
 }
-
-// ===================== animación (bucle del juego: A, quieto, B, quieto cada 6 frames) =====================
-const TABLA = [1, 0, 2, 0];
-['anim_d', 'anim_i'].forEach(id => { const c = document.getElementById(id); c.width = 80; c.height = 120; });
 
 // ===================== escena: misma lógica que el juego =====================
 const escena = document.getElementById('escena'), ectx = escena.getContext('2d');
@@ -646,24 +578,15 @@ const FUENTE = {   // glifos 8x8 de la fuente del Atari que usa el HUD
 };
 const J = { px:120, py:120, ddx:4, ddy:0, tick:0, paso:0, pose:0, espejo:false, andando:0, rt:0,
             activa:0, bx:0, by:0, bdx:0, bdy:0, gatillo:1, gatant:1, snd:0, vidas:3, puntos:0 };
-// niveles de Kaiju (kaiju_niveles.asm: 2 bytes de inicio + 23 x 40) y los 57
-// caracteres de kaiju_fuente (códigos 2-58), en base64. OJO: copia de los .asm.
-const NIVELES_B64 = [
-  'cHADAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDAwQEAAAAAAAAAAAAAAAAAAAAAAUFAAAAAAAAAAAAAAAAAAAAAAQEAwMABAQAAAAAAAAAAAAAAAAAAAAFBQAAAAAAAAAAAAAAAAAAAAQEAAMDAAAEBAAAAAAAAAAAAAAAAAAABQUAAAAAAAAAAAAAAAAAAAQEAAADAwAAAAQEAAAAAAAAAAAAAAAAAAUFAAAAAAAAAAAAAAAAAAQEAAAAAwMAAAAABAQAAAAAAAAAAAAAAAAFBQAAAAAAAAAAAAAAAAQEAAAAAAMDAAAAAAAEBAAAAAAAAAAFBQUFBQUFBQUFAAAAAAAAAAQEAAAAAAADAwAAAAAABQUAAAAAAAAABQAAAAAAAAAABQAAAAAAAAAFBQAAAAAAAwMAAAAAAAUFAAAAAAAAAAUAAAAAAAAAAAUAAAAAAAAABQUAAAAAAAMDAAAAAAAFBQAAAAAAAAAFAAAAAAAAAAAFAAAAAAAAAAUFAAAAAAADAwAAAAAABQUEBAQEBAQEBQAAAAAAAAAABQQEBAQEBAQFBQAAAAAAAwMAAAAAAAUFBAQEBAQEBAUAAAAAAAAAAAUEBAQEBAQEBQUAAAAAAAMDAAAAAAAFBQAAAAAAAAAFAAAAAAAAAAAFAAAAAAAAAAUFAAAAAAADAwAAAAAABQUAAAAAAAAABQAAAAAAAAAABQAAAAAAAAAFBQAAAAAAAwMAAAAAAAUFAAAAAAAAAAUAAAAAAAAAAAUAAAAAAAAABQUAAAAAAAMDAAAAAAAEBAAAAAAAAAAFBQUFBQUFBQUFAAAAAAAAAAQEAAAAAAADAwAAAAAEBAAAAAAAAAAAAAAAAAUFAAAAAAAAAAAAAAAABAQAAAAAAwMAAAAEBAAAAAAAAAAAAAAAAAAFBQAAAAAAAAAAAAAAAAAEBAAAAAMDAAAEBAAAAAAAAAAAAAAAAAAABQUAAAAAAAAAAAAAAAAAAAQEAAADAwAEBAAAAAAAAAAAAAAAAAAAAAUFAAAAAAAAAAAAAAAAAAAABAQAAwMEBAAAAAAAAAAAAAAAAAAAAAAFBQAAAAAAAAAAAAAAAAAAAAAEBAMDAAAAAAAAAAAAAAAAAAAAAAAABQUAAAAAAAAAAAAAAAAAAAAAAAADAwICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAw==',
-  'e3gDAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDAwAAAAAAAAAAAAAAAAUFAAAAAAAAAAAAAAUFAAAAAAAAAAAAAAAAAwMAAAAAAAAAAAAAAAAFBQAAAAAAAAAAAAAFBQAAAAAAAAAAAAAAAAMDAAAAAAAAAAAAAAAABQUAAAAAAAAAAAAABQUAAAAAAAAAAAAAAAADAwAAAAAAAAAAAAAAAAUFAAAAAAAAAAAAAAUFAAAAAAAAAAAAAAAAAwMAAAAAAAAAAAAAAAAEBAAAAAAAAAAAAAAEBAAAAAAAAAAAAAAAAAMDAAAAAAAAAAAAAAAABAQAAAAAAAAAAAAABAQAAAAAAAAAAAAAAAADAwAAAAAAAAAAAAAAAAQEAAAAAAAAAAAAAAQEAAAAAAAAAAAAAAAAAwMAAAAFBQQEBAQEBAQEBAAFBQUFBQUFBQAEBAQEBAQEBAQFBQAAAAMDAAAABQUEBAQEBAQEBAQABQUFBQUFBQUABAQEBAQEBAQEBQUAAAADAwAAAAUFAAAAAAAAAAAAAAUFAAAAAAUFAAAAAAAAAAAAAAUFAAAAAwMEBAQFBQAAAAAAAAAAAAAFBQAAAAAFBQAAAAAAAAAAAAAFBQQEBAMDBAQEBQUAAAAAAAAAAAAABQUAAAAABQUAAAAAAAAAAAAABQUEBAQDAwAAAAUFAAAAAAAAAAAAAAUFAAAAAAUFAAAAAAAAAAAAAAUFAAAAAwMAAAAFBQQEBAQEBAQEBAAFBQUFBQUFBQAEBAQEBAQEBAQFBQAAAAMDAAAABQUEBAQEBAQEBAQABQUFBQUFBQUABAQEBAQEBAQEBQUAAAADAwAAAAAAAAAAAAAAAAQEAAAAAAAAAAAAAAQEAAAAAAAAAAAAAAAAAwMAAAAAAAAAAAAAAAAEBAAAAAAAAAAAAAAEBAAAAAAAAAAAAAAAAAMDAAAAAAAAAAAAAAAABAQAAAAAAAAAAAAABAQAAAAAAAAAAAAAAAADAwAAAAAAAAAAAAAAAAUFAAAAAAAAAAAAAAUFAAAAAAAAAAAAAAAAAwMAAAAAAAAAAAAAAAAFBQAAAAAAAAAAAAAFBQAAAAAAAAAAAAAAAAMDAAAAAAAAAAAAAAAABQUAAAAAAAAAAAAABQUAAAAAAAAAAAAAAAADAwICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAw==',
-  'e3gDAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDAwAAAAAAAAAAAAAEBAAAAAAAAAQEAAAAAAAABAQAAAAAAAAAAAAAAwMAAAAAAAAAAAAEBAAAAAAAAAQEBAQAAAAAAAAEBAAAAAAAAAAAAAMDAAAAAAAAAAAEBAAAAAAAAAQEAAAEBAAAAAAAAAQEAAAAAAAAAAADAwAAAAAAAAAEBAAAAAAAAAQEAAAAAAQEAAAAAAAABAQAAAAAAAAAAwMAAAAAAAAEBAAAAAAAAAQEBQUFBQUFBAQAAAAAAAAEBAAAAAAAAAMDAAAAAAAEBAAAAAAAAAQEBQUFBQUFBQUEBAAAAAAAAAQEAAAAAAADAwAAAAAEBAAAAAAAAAQEAAAAAAAAAAAAAAQEAAAAAAAABAQAAAAAAwMFBQUEBAAAAAAAAAQEAAAAAAAAAAAAAAAABAQAAAAAAAAEBAUFBQMDBQUFBQAAAAAAAAUFBQUAAAAAAAAAAAAABQUFBQAAAAAAAAUFBQUDAwAAAAAAAAAAAAUFAAUFAAAAAAAAAAAAAAUFAAUFAAAAAAAAAAAAAwMAAAAAAAAAAAUFAAAABQUAAAAAAAAAAAUFAAAABQUAAAAAAAAAAAMDAAAAAAAAAAQEAAAAAAUFAAAAAAAAAAAFBQAAAAAEBAAAAAAAAAADAwAAAAAAAAQEAAAAAAAABQUAAAAAAAAFBQAAAAAAAAQEAAAAAAAAAwMFBQAAAAQEAAAAAAAAAAUFAAAAAAAABQUAAAAAAAAABAQAAAAFBQMDAAUFAAQEAAAAAAAAAAAABQUAAAAABQUAAAAAAAAAAAAEBAAFBQADAwAABQUEAAAAAAAAAAAAAAUFAAAAAAUFAAAAAAAAAAAAAAQFBQAAAwMAAAAFBQQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQEBAQFBQAAAAMDAAAAAAUFAAAAAAAAAAAAAAAABAQAAAAAAAAAAAAAAAAFBQAAAAADAwAAAAAABQUAAAAAAAAAAAAAAAQEAAAAAAAAAAAAAAAFBQAAAAAAAwMAAAAAAAAFBQAAAAAAAAAAAAAEBAAAAAAAAAAAAAAFBQAAAAAAAAMDAAAAAAAAAAUFAAAAAAAAAAAABAQAAAAAAAAAAAAFBQAAAAAAAAADAwICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAw==',
-  'e7sDAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDAwAAAAAEBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAQAAAAAAwMAAAAABAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQEAAAAAAMDAAAAAAAEBAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQEAAAAAAADAwAAAAAABAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAEBAAAAAAAAwMAAAAAAAAEBAUFBQUFBQUFBQUFBQUFBQUFBQUFBQUEBAAAAAAAAAMDAAAAAAAABAQFBQUFBQUFBQUFBQUFBQUFBQUFBQUFBAQAAAAAAAADAwQEAAAAAAUFAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAUFAAAAAAQEAwMABAQAAAAABQUAAAAAAAAAAAAAAAAAAAAAAAAAAAUFAAAAAAQEAAMDAAAEBAAAAAAFBQAAAAAAAAAAAAAAAAAAAAAAAAUFAAAAAAQEAAADAwAAAAQEAAAAAAUFAAAAAAAAAAAAAAAAAAAAAAUFAAAAAAQEAAAAAwMAAAUFAAAAAAAFBQQAAAAAAAAAAAAAAAAAAAQFBQAAAAAABQUAAAMDAAUFAAAAAAAFBQAEBAAAAAAAAAAAAAAAAAQEAAUFAAAAAAAFBQADAwUFAAAAAAAFBQAAAAQEAAAAAAAAAAAAAAQEAAAABQUAAAAAAAUFAwMFBQUFBQUFBQAAAAAABAQAAAAAAAAAAAQEAAAAAAAFBQUFBQUFBQMDAAAAAAQEBQAAAAAAAAAEBQUFBQUFBQUEAAAAAAAAAAUEBAAAAAADAwAAAAAABAQAAAAAAAAABQUFBQUFBQUFBQAAAAAAAAAEBAAAAAAAAwMAAAAAAAAEBAAAAAAABQUAAAAAAAAAAAUFAAAAAAAEBAAAAAAAAAMDAAAAAAAAAAQEAAAABQUAAAAAAAAAAAAABQUAAAAEBAAAAAAAAAADAwAAAAAAAAAABAQABQUAAAAAAAAAAAAAAAAFBQAEBAAAAAAAAAAAAwMAAAAAAAAAAAAEBAUAAAAAAAAAAAAAAAAAAAUEBAAAAAAAAAAAAAMDAAAAAAAAAAAAAAQEAAAAAAAAAAAAAAAAAAAEBAAAAAAAAAAAAAADAwICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAw==',
-  'eHADAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDAwAAAAAAAAAFAAAABQAAAAAAAAAAAAAAAAAABQAAAAUAAAAAAAAAAwMAAAAAAAAABQAAAAUAAAAAAAAAAAAAAAAAAAUAAAAFAAAAAAAAAAMDAAAAAAAFBQUAAAAFBQUFBQUFBQUFBQUFBQUFAAAABQUFAAAAAAADAwUFBQUFBQAAAAAABAQEBAQAAAAAAAAEBAQEBAAAAAAABQUFBQUFAwMAAAAAAAAAAAAAAAQEBAQEBAAAAAAEBAQEBAQAAAAAAAAAAAAAAAMDAAAAAAAAAAAAAAQABAQEBAQEBAQEBAQEBAQABAAAAAAAAAAAAAADAwAAAAAAAAAAAAQAAAAAAAAAAAUEAAAAAAAAAAAEAAAAAAAAAAAAAwMAAAAAAAAAAAQAAAAAAAAAAAUAAAQAAAAAAAAAAAQAAAAAAAAAAAMDBQUFBQUFBQUAAAAAAAAAAAUAAAAABAAAAAAAAAAABQUFBQUFBQUDAwAAAAAAAAAFAAAAAAAAAAUAAAAAAAAEAAAAAAAAAAUAAAAAAAAAAwMAAAAAAAAABQAAAAAAAAUAAAAAAAAAAAQAAAAAAAAFAAAAAAAAAAMDAAAAAAAAAAUAAAAAAAAABAAAAAAAAAUAAAAAAAAABQAAAAAAAAADAwUFBQUFBQUFAAAAAAAAAAAEAAAAAAUAAAAAAAAAAAUFBQUFBQUFAwMAAAAAAAAAAAQAAAAAAAAAAAQAAAUAAAAAAAAAAAQAAAAAAAAAAAMDAAAAAAAAAAAABAAAAAAAAAAABAUAAAAAAAAAAAQAAAAAAAAAAAADAwAAAAAAAAAAAAAEAAQEBAQEBAQEBAQEBAQEAAQAAAAAAAAAAAAAAwMAAAAAAAAAAAAAAAQEBAQEBAAAAAAEBAQEBAQAAAAAAAAAAAAAAAMDBQUFBQUFAAAAAAAEBAQEBAAAAAAAAAQEBAQEAAAAAAAFBQUFBQUDAwAAAAAABQUFAAAABQUFBQUFBQUFBQUFBQUFBQAAAAUFBQAAAAAAAwMAAAAAAAAABQAAAAUAAAAAAAAAAAAAAAAAAAUAAAAFAAAAAAAAAAMDAAAAAAAAAAUAAAAFAAAAAAAAAAAAAAAAAAAFAAAABQAAAAAAAAADAwICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAw==',
-  'ZXoDAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgIDAwAAAAAAAAAAAAAABQAAAAAAAAAAAAAABQAAAAQAAAAAAAAAAAAAAwMAAAAAAAAAAAAAAAUAAAAAAAAAAAAAAAUAAAAEAAAAAAAAAAAAAAMDAAAAAAAAAAAAAAAFAAAAAAAAAAAAAAAFAAAABAAAAAAAAAAAAAADAwAAAAAAAAAAAAAABQAAAAAAAAAAAAAABQAAAAUAAAAAAAAAAAAAAwMFBQUFBQUFBQUFBQQEBAQEBAQEBAQEBAQAAAAABQAAAAAAAAAAAAMDAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAABAAAAAAFBAQEBAQEBAQDAwAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAwMAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAMDAAAAAAAAAAAAAAAEBAQEBAQEAAAAAAAAAAAABAUFBQUFBQUFBQUDAwAAAAAAAAAAAAAABQAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAwMAAAAAAAAAAAAAAAUAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAMDAAAAAAAAAAAAAAAFAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAAADAwAAAAAAAAAAAAAABAQEBAQEBAAAAAAAAAAAAAQFBQUFBQUFBQUFAwMAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAMDAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAADAwAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAQAAAAABQQEBAQEBAQEAwMFBQUFBQUFBQUFBQQEBAQEBAQEBAQEBAQAAAAABQAAAAAAAAAAAAMDAAAAAAAAAAAAAAAFAAAAAAAAAAAAAAAFAAAABQAAAAAAAAAAAAADAwAAAAAAAAAAAAAABQAAAAAAAAAAAAAABQAAAAQAAAAAAAAAAAAAAwMAAAAAAAAAAAAAAAUAAAAAAAAAAAAAAAUAAAAEAAAAAAAAAAAAAAMDAAAAAAAAAAAAAAAFAAAAAAAAAAAAAAAFAAAABAAAAAAAAAAAAAADAwICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAgICAw=='
-];
+// los 57 caracteres de kaiju_fuente (códigos 2-58), en base64. OJO: copia de kaiju_graficos.asm.
 const FUENTE_K_B64 = '/wMMDDAwwP/Dw/Pzz8/Dw6qCoqKKioKqVUFRUUVFQVUCDw8OLw4PAKD8/Oz+rPwACy+6+/u6Lwvg+K7v76744CoiIiIiIioAAgICAgICAgAqAgIqICAqACoCAioCAioAIiIiKgICAgAqICAqAgIqACogICoiIioAKgICAgICAgAqIiIqIiIqACoiIioCAioAAAAAAAC/uvsAAAAAAP6u7/u6vwAAAAAA767+AAAAAAAAAAAAAL+6+AAAAAAA/q4v+Lq/AAAAAAAvrv4AAAAAAAAAAAA8DP8/AwMPDzw8PPA/DzMzwMAAAPP/8/Pw8DD8AAAAADwM/w8wMDw8PDw88D8PDwwMDAAA8////zw8DAwAAAAAPAwAADAAADwAPAD8PwAAAAwAAAAAAADzAAAwMICAgICAgICoqICAoICAgKiIiIiIiIiIoAAAACgAAAAAwMDw8Dw8PA8AAAAAPDD//M//z88PDww//PDMzAMDAAAMDDw8PDw8DwAAAAA8MP/wz////zw8MDD88PAwMDAAADC4uOy4uDAAAAAAAAsAugAAAAAA4ACuAPsALwAAAAAA7wD4AAAAAAAAAAAAAAAAAAAAAAAAAAAA';
 const KAIJU_PF = [0x8A, 0x34, 0xCC];   // KAIJU_COLOR0-2: bloques (píxeles 01, 10, 11)
 const b64 = t => Uint8Array.from(atob(t), c => c.charCodeAt(0));
 const FUENTE_K = b64(FUENTE_K_B64);
 let mapa = new Uint8Array(960), mapaCambio = true;   // 24 x 40; fila 0 = HUD
-function cargarNivel(n) {   // dibujar_nivel
-  const d = b64(NIVELES_B64[n]);
-  J.px = d[0]; J.py = d[1]; mapa = new Uint8Array(960); mapa.set(d.subarray(2), 40);
+function cargarNivel(n) {   // dibujar_nivel, con los niveles del panel Niveles
+  const N = NV.niveles[n] || NV.niveles[0];
+  J.px = N.px; J.py = N.py; mapa = new Uint8Array(960); mapa.set(N.mapa, 40);
   J.activa = 0; J.puntos = 0; mapaCambio = true;
 }
 // choca: la caja del robot (8 columnas, líneas 2-21) toca algún bloque?
@@ -804,23 +727,595 @@ function bucle(t) {
   acum += Math.min(250, t - ultimo); ultimo = t;
   while (acum >= 1000 / 60 * FRAMES_PASO) { acum -= 1000 / 60 * FRAMES_PASO; pasoJuego(); animT++; }
   dibujarEscena();
-  const paso = TABLA[Math.floor(animT / 6) & 3];
-  ['anim_d', 'anim_i'].forEach((id, k) => {
-    const cx = document.getElementById(id).getContext('2d');
-    cx.fillStyle = PAL[S.col.fondo]; cx.fillRect(0, 0, 80, 120);
-    dibujarRobot(cx, paso, 0, 0, 10, k === 1);
-  });
   const kp = Math.floor(animT / 5) & 1;
   [['kanim_c', 1 + kp], ['kanim_a', 3 + kp], ['kanim_d', 0], ['kanim_i', 5]].forEach(([id, i]) =>
     dibujarKaiju(document.getElementById(id).getContext('2d'), i, 8));
   requestAnimationFrame(bucle);
 }
 document.getElementById('nivelsel').addEventListener('change', e => { cargarNivel(+e.target.value); escena.focus(); });
-cargarNivel(0);   // el juego empieza en el nivel 1 (nivel = 0 en datos.asm)
 document.querySelectorAll('[data-vidas]').forEach(b => b.addEventListener('click', () => {
   J.vidas = +b.dataset.vidas;
   document.querySelectorAll('[data-vidas]').forEach(x => x.classList.toggle('on', x === b));
 }));
+
+// ===================== niveles: formato de niveles.asm (sin DOM) =====================
+// Un nivel: { nombre, px, py, mapa: 920 caracteres (filas 1-23 de la pantalla x 40),
+//   robots: [{ x, y, dira, dirb, pasos, clase, vida, zx0, zx1, zy0, zy1 }], celulas: [{ x, y }] }
+// En el .asm: px, py; el mapa comprimido ($FF, n, v = n veces v); robots, celulas;
+// 11 bytes por robot (en el orden de CAMPOS_ROBOT) y (x, y) por célula. Ver nivel.asm.
+const MAXROB = 10, MAXCEL = 18;   // datos.asm
+const CAMPOS_ROBOT = ['x', 'y', 'dira', 'dirb', 'pasos', 'clase', 'vida', 'zx0', 'zx1', 'zy0', 'zy1'];
+const DIR_DX = [-1, 0, -1, -1, 1, 0, 1, 1, 0], DIR_DY = [-1, -1, 0, 1, 1, 1, 0, -1, 0];   // dir_dx/dir_dy
+function nivelNuevo(nombre) {
+  const mapa = [];
+  for (let f = 1; f <= 23; f++) for (let c = 0; c < 40; c++)
+    mapa.push(c === 0 || c === 39 ? 3 : (f === 1 || f === 23) ? 2 : 0);
+  return { nombre: nombre || 'Nivel nuevo', px: 48 + 4 * 19, py: 32 + 8 * 11, mapa, robots: [], celulas: [] };
+}
+function comprimirFila(fila) {
+  const out = [];
+  for (let i = 0; i < fila.length;) {
+    let n = 1;
+    while (i + n < fila.length && fila[i + n] === fila[i] && n < 255) n++;
+    if (n >= 4 || fila[i] === 0xFF) out.push(0xFF, n, fila[i]);
+    else for (let k = 0; k < n; k++) out.push(fila[i]);
+    i += n;
+  }
+  return out;
+}
+function bytesNivel(L) {   // lo que ocupa en memoria (+2 de su puntero en «niveles»)
+  let n = 2 + 2 + 2 + 11 * L.robots.length + 2 * L.celulas.length + 2;
+  for (let f = 0; f < 23; f++) n += comprimirFila(L.mapa.slice(f * 40, f * 40 + 40)).length;
+  return n;
+}
+const comentar = (t, c) => (t.length < 64 ? t.padEnd(64) : t + ' ') + '; ' + c;
+const fmtByte = v => v === 0xFF ? '$FF' : (v & 0x80) ? '$' + v.toString(16).toUpperCase() : String(v);
+function exportarNiveles(niveles) {
+  const L = [], col = (a, b) => a.padEnd(24) + b;
+  L.push('; niveles.asm - niveles del juego, generado con editor-sprite.html (panel',
+    '; Niveles). Para cambiarlos: abrir este archivo en el editor, editar y',
+    '; exportar de nuevo.',
+    ';',
+    '; Cada nivel:',
+    ';   .byte x, y      inicio del jugador (HPOS y linea PMG de su esquina)',
+    ';   23 filas del mapa (filas 1-23 de la pantalla, 40 caracteres cada una),',
+    ';     comprimidas: $FF, n, v = n veces el caracter v; otro byte va tal cual',
+    ';   .byte robots, celulas',
+    ';   robots, 11 bytes: x, y (casilla de arriba a la izquierda de sus 2 x 2),',
+    ';     direccion A, direccion B, pasos, caracter ($9C rojo o $1C), vida y la',
+    ';     zona de vigilancia: columnas x0-x1, filas y0-y1',
+    ';   celulas, 2 bytes: x, y',
+    '', `NUM_NIVELES = ${niveles.length}`, '');
+  for (let i = 0; i < niveles.length; i += 8)
+    L.push(col(i ? '' : 'niveles', '.word ' + niveles.slice(i, i + 8).map((_, k) => 'nivel' + (i + k + 1)).join(',')));
+  niveles.forEach((N, i) => {
+    L.push('', col('nivel' + (i + 1), '; ' + (N.nombre || '').replace(/[\r\n]/g, ' ')));
+    L.push(comentar(col('', `.byte ${N.px},${N.py}`), 'inicio del jugador'));
+    for (let f = 0; f < 23; f++)
+      L.push(comentar(col('', '.byte ' + comprimirFila(N.mapa.slice(f * 40, f * 40 + 40)).map(fmtByte).join(',')), `fila ${f + 1}`));
+    L.push(comentar(col('', `.byte ${N.robots.length},${N.celulas.length}`), 'robots, celulas'));
+    N.robots.forEach((r, k) => L.push(comentar(col('', '.byte ' + CAMPOS_ROBOT.map(c => fmtByte(r[c])).join(',')), `robot ${k}`)));
+    if (N.celulas.length) L.push(comentar(col('', '.byte ' + N.celulas.map(c => c.x + ',' + c.y).join(',')), 'celulas (x, y)'));
+  });
+  return L.join('\n') + '\n';
+}
+// lee un niveles.asm (el que exporta el editor); lanza un Error con el motivo si no puede
+function leerNiveles(texto) {
+  const bloques = {}, orden = [];
+  let actual = null, lista = null;
+  const num = t => t[0] === '$' ? parseInt(t.slice(1), 16) : t[0] === '%' ? parseInt(t.slice(1), 2) : parseInt(t, 10);
+  for (const lin of texto.split(/\r?\n/)) {
+    const m = lin.match(/^(nivel\d+)\b\s*(?:;\s*(.*))?/);
+    if (m) { actual = bloques[m[1]] = { nombre: (m[2] || '').trim(), bytes: [] }; orden.push(m[1]); lista = null; }
+    const sin = lin.replace(/;.*/, '');
+    if (/^niveles\b/.test(sin)) { lista = []; actual = null; }
+    const w = sin.match(/\.word\s+(.*)/);
+    if (w && lista) { lista.push(...w[1].split(',').map(t => t.trim())); continue; }
+    const b = sin.match(/\.byte\s+(.*)/);
+    if (b && actual) actual.bytes.push(...b[1].split(',').map(t => num(t.trim())));
+  }
+  const nombres = (lista && lista.length ? lista : orden).filter(Boolean);
+  if (!nombres.length) throw new Error('no encontré ningún nivel (etiquetas nivel1, nivel2…)');
+  return nombres.map(et => {
+    const B = bloques[et];
+    if (!B) throw new Error(`falta la etiqueta ${et}`);
+    const d = B.bytes; let i = 0;
+    const leer = () => { if (i >= d.length || isNaN(d[i])) throw new Error(`${et}: faltan bytes`); return d[i++]; };
+    const N = { nombre: B.nombre, px: leer(), py: leer(), mapa: [], robots: [], celulas: [] };
+    while (N.mapa.length < 920) {
+      const v = leer();
+      if (v === 0xFF) { const n = leer() || 256, x = leer(); for (let k = 0; k < n; k++) N.mapa.push(x); }
+      else N.mapa.push(v);
+    }
+    if (N.mapa.length !== 920) throw new Error(`${et}: el mapa no tiene 23 x 40 caracteres`);
+    const nr = leer(), nc = leer();
+    for (let k = 0; k < nr; k++) { const r = {}; CAMPOS_ROBOT.forEach(c => r[c] = leer()); N.robots.push(r); }
+    for (let k = 0; k < nc; k++) N.celulas.push({ x: leer(), y: leer() });
+    return N;
+  });
+}
+// recorrido de la patrulla (como actualizar_enemigos): casillas por las que pasa
+// el robot, sin contar a los otros robots
+function recorrido(N, r) {
+  const ocupado = (x, y) => {
+    if (x < 0 || y < 1 || x > 38 || y > 22) return true;
+    for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1]]) if (N.mapa[(y + dy - 1) * 40 + x + dx]) return true;
+    return N.celulas.some(c => Math.abs(c.x - x) < 2 && Math.abs(c.y - y) < 2);
+  };
+  let x = r.x, y = r.y, dir = r.dira, paso = 0, fase = 0;
+  const pts = [[x, y]], vueltas = r.pasos ? Math.min(400, r.pasos * 4) : 160;
+  for (let u = 0; u < vueltas; u++) {
+    if (r.pasos) { dir = paso < (r.pasos >> 1) ? r.dira : r.dirb; if (++paso >= r.pasos) paso = 0; }
+    fase ^= 1;
+    if (fase || dir > 7) continue;
+    const nx = x + DIR_DX[dir], ny = y + DIR_DY[dir];
+    if (!ocupado(nx, ny)) { x = nx; y = ny; pts.push([x, y]); }
+  }
+  return pts;
+}
+// ===================== fin del formato =====================
+
+// ===================== niveles: editor =====================
+// OJO: NIVELES_ASM es una copia de niveles.asm (lo que tiene el juego). Si se
+// cambia a mano allí, hay que actualizarla aquí (o abrir el editor por http,
+// que lo lee solo, o usar «Abrir niveles.asm…»).
+const NIVELES_ASM = `; niveles.asm - niveles del juego, generado con editor-sprite.html (panel
+; Niveles). Para cambiarlos: abrir este archivo en el editor, editar y
+; exportar de nuevo.
+;
+; Cada nivel:
+;   .byte x, y      inicio del jugador (HPOS y linea PMG de su esquina)
+;   23 filas del mapa (filas 1-23 de la pantalla, 40 caracteres cada una),
+;     comprimidas: $FF, n, v = n veces el caracter v; otro byte va tal cual
+;   .byte robots, celulas
+;   robots, 11 bytes: x, y (casilla de arriba a la izquierda de sus 2 x 2),
+;     direccion A, direccion B, pasos, caracter ($9C rojo o $1C), vida y la
+;     zona de vigilancia: columnas x0-x1, filas y0-y1
+;   celulas, 2 bytes: x, y
+
+NUM_NIVELES = 1
+
+niveles                 .word nivel1
+
+nivel1                  ; Primer nivel
+                        .byte 124,112                           ; inicio del jugador
+                        .byte 3,$FF,38,2,3                      ; fila 1
+                        .byte 3,$FF,18,0,5,5,$FF,18,0,3         ; fila 2
+                        .byte 3,$FF,18,0,5,5,$FF,18,0,3         ; fila 3
+                        .byte 3,$FF,18,0,5,5,$FF,18,0,3         ; fila 4
+                        .byte 3,$FF,18,0,5,5,$FF,18,0,3         ; fila 5
+                        .byte 3,$FF,18,0,5,5,$FF,18,0,3         ; fila 6
+                        .byte 3,$FF,38,0,3                      ; fila 7
+                        .byte 3,$FF,4,0,$FF,10,4,$FF,10,0,$FF,10,4,$FF,4,0,3 ; fila 8
+                        .byte 3,$FF,38,0,3                      ; fila 9
+                        .byte 3,$FF,38,0,3                      ; fila 10
+                        .byte 3,$FF,38,0,3                      ; fila 11
+                        .byte 3,$FF,38,0,3                      ; fila 12
+                        .byte 3,$FF,38,0,3                      ; fila 13
+                        .byte 3,$FF,38,0,3                      ; fila 14
+                        .byte 3,$FF,4,0,$FF,10,4,$FF,10,0,$FF,10,4,$FF,4,0,3 ; fila 15
+                        .byte 3,$FF,38,0,3                      ; fila 16
+                        .byte 3,$FF,18,0,5,5,$FF,18,0,3         ; fila 17
+                        .byte 3,$FF,18,0,5,5,$FF,18,0,3         ; fila 18
+                        .byte 3,$FF,18,0,5,5,$FF,18,0,3         ; fila 19
+                        .byte 3,$FF,18,0,5,5,$FF,18,0,3         ; fila 20
+                        .byte 3,$FF,18,0,5,5,$FF,18,0,3         ; fila 21
+                        .byte 3,$FF,18,0,5,5,$FF,18,0,3         ; fila 22
+                        .byte 3,$FF,38,2,3                      ; fila 23
+                        .byte 2,6                               ; robots, celulas
+                        .byte 8,4,6,2,16,$9C,1,0,18,1,7         ; robot 0
+                        .byte 30,18,2,6,16,$9C,1,21,39,16,23    ; robot 1
+                        .byte 3,3,35,3,3,20,35,20,9,11,29,11    ; celulas (x, y)
+`;
+const PRESUPUESTO = 12041;   // bytes libres para niveles.asm en $2000-$5FFF (aprox., depende del código)
+const NTILES = [0, 2, 3, 4, 5, ...Array.from({ length: 14 }, (_, i) => 6 + i), 0x34, 0x35, 0x36, 0x37, 0x38];
+const NOMBRE_TILE = { 0:'Vacío (borra)', 2:'Borde horizontal: lastima al chocarlo', 3:'Borde vertical / esquina: lastima al chocarlo',
+  4:'Muro', 5:'Bloque azul: se rompe a tiros (+1 punto)' };
+const NOMBRE_DIR = ['↖ arriba-izq.', '↑ arriba', '← izquierda', '↙ abajo-izq.', '↘ abajo-der.', '↓ abajo', '→ derecha', '↗ arriba-der.', '■ quieto'];
+const NC = 16;   // tamaño de un carácter en el canvas del mapa (640 x 384)
+let NBASE = leerNiveles(NIVELES_ASM);   // lo que tiene el juego
+let NV = { niveles: copia(NBASE) };      // lo que se está editando
+let nSel = 0, nHerr = 'bloque', nTile = 4, nRob = -1, focoNiveles = false;
+const nDeshacerPila = [], nRehacerPila = [];
+const nivelAct = () => NV.niveles[nSel];
+
+// --- deshacer ---
+function nDeshacer() {
+  if (!nDeshacerPila.length) return;
+  nRehacerPila.push(JSON.stringify(NV)); NV = JSON.parse(nDeshacerPila.pop()); nAjustar(); nCambio(true);
+}
+function nRehacer() {
+  if (!nRehacerPila.length) return;
+  nDeshacerPila.push(JSON.stringify(NV)); NV = JSON.parse(nRehacerPila.pop()); nAjustar(); nCambio(true);
+}
+function nGuardarUndo(antes) {   // antes: JSON del estado previo (o el actual)
+  nDeshacerPila.push(antes || JSON.stringify(NV));
+  if (nDeshacerPila.length > 200) nDeshacerPila.shift();
+  nRehacerPila.length = 0;
+}
+function nAjustar() {
+  nSel = Math.max(0, Math.min(nSel, NV.niveles.length - 1));
+  if (nRob >= nivelAct().robots.length) nRob = -1;
+}
+
+// --- caracteres de ANTIC 4 con la fuente de Kaiju (inversos: el 11 usa COLOR3) ---
+const glifos = new Map();
+function glifo(ch) {
+  const c3 = (ch & 0x80) ? S.col.bala : KAIJU_PF[2], k = ch + ':' + c3;
+  let g = glifos.get(k); if (g) return g;
+  g = document.createElement('canvas'); g.width = 4; g.height = 8;
+  const b = ch & 0x7F, cx = g.getContext('2d'), cols = [null, PAL[KAIJU_PF[0]], PAL[KAIJU_PF[1]], PAL[c3]];
+  if (b >= 2 && b <= 58) for (let r = 0; r < 8; r++) for (let p = 0; p < 4; p++) {
+    const v = (FUENTE_K[(b - 2) * 8 + r] >> (6 - 2 * p)) & 3;
+    if (v) { cx.fillStyle = cols[v]; cx.fillRect(p, r, 1, 1); }
+  }
+  glifos.set(k, g); return g;
+}
+function pintarChar(ctx, ch, x, y, w, h) { if (ch & 0x7F) ctx.drawImage(glifo(ch), x, y, w, h); }
+// fila 0 como la dibuja hud.asm: energía, una célula por cada una, puntos
+function filaHud(N) {
+  const f = new Array(40).fill(0);
+  for (let i = 0; i < 5; i++) { f[i * 2] = 6; f[i * 2 + 1] = 7; }
+  for (let i = 0; i < Math.min(N.celulas.length, MAXCEL); i++) f[10 + i] = 0x34;
+  for (let i = 29; i < 39; i++) f[i] = 0x0A;
+  return f;
+}
+const charRobot = r => r.clase + (r.dira >= 4 ? 0x10 : 0);   // dibujar_robot (fase 0)
+
+// --- el mapa ---
+const nmapa = document.getElementById('nmapa'), nctx = nmapa.getContext('2d');
+let nHover = null, nArrastre = null;
+const tile = (N, c, f) => f >= 1 && f <= 23 && c >= 0 && c < 40 ? N.mapa[(f - 1) * 40 + c] : -1;
+function dibujarNivelEditor() {
+  const N = nivelAct(), c = nctx;
+  c.imageSmoothingEnabled = false;
+  c.fillStyle = PAL[0]; c.fillRect(0, 0, 640, 384);
+  c.globalAlpha = 0.45;
+  filaHud(N).forEach((ch, x) => pintarChar(c, ch, x * NC, 0, NC, NC));
+  c.globalAlpha = 1;
+  for (let f = 1; f <= 23; f++) for (let x = 0; x < 40; x++) pintarChar(c, N.mapa[(f - 1) * 40 + x], x * NC, f * NC, NC, NC);
+  const dos = (ch, x, y) => [[0, 0], [1, 0], [0, 1], [1, 1]].forEach(([dx, dy], i) => pintarChar(c, ch + i, (x + dx) * NC, (y + dy) * NC, NC, NC));
+  N.celulas.forEach(o => dos(0x18, o.x, o.y));
+  N.robots.forEach(r => dos(charRobot(r), r.x, r.y));
+  // jugador: pose «quieto →» de Kaiju (1 color clock = 4 px, 1 línea = 2 px)
+  for (let y = 0; y < 24; y++) for (let x = 0; x < 8; x++) {
+    const col = colorKaiju(getK(0, x, y)); if (!col) continue;
+    c.fillStyle = col; c.fillRect((N.px - 48 + x) * 4, (N.py - 32 + y) * 2, 4, 2);
+  }
+  if (document.getElementById('nrejilla').checked) {
+    c.fillStyle = '#ffffff14';
+    for (let x = 1; x < 40; x++) c.fillRect(x * NC, 0, 1, 384);
+    for (let y = 1; y < 24; y++) c.fillRect(0, y * NC, 640, 1);
+    c.fillStyle = '#ffffff40'; c.fillRect(0, NC, 640, 1);
+  }
+  if (document.getElementById('nespejo').checked) { c.fillStyle = '#4fc3d980'; c.fillRect(320 - 1, NC, 2, 384 - NC); }
+  // robot elegido: zona de vigilancia y recorrido de la patrulla
+  const r = N.robots[nRob];
+  if (r) {
+    const x0 = Math.max(0, r.zx0), x1 = Math.min(39, r.zx1), y0 = Math.max(0, r.zy0), y1 = Math.min(23, r.zy1);
+    if (x0 <= x1 && y0 <= y1) {
+      c.fillStyle = '#f0c67422'; c.fillRect(x0 * NC, y0 * NC, (x1 - x0 + 1) * NC, (y1 - y0 + 1) * NC);
+      c.setLineDash([6, 4]); c.strokeStyle = '#f0c674'; c.lineWidth = 2;
+      c.strokeRect(x0 * NC + 1, y0 * NC + 1, (x1 - x0 + 1) * NC - 2, (y1 - y0 + 1) * NC - 2); c.setLineDash([]);
+    }
+    const pts = recorrido(N, r);
+    c.strokeStyle = '#8ef08e'; c.fillStyle = '#8ef08e'; c.lineWidth = 2; c.beginPath();
+    pts.forEach(([x, y], i) => { const X = (x + 1) * NC, Y = (y + 1) * NC; i ? c.lineTo(X, Y) : c.moveTo(X, Y); });
+    c.stroke();
+    pts.forEach(([x, y]) => { c.beginPath(); c.arc((x + 1) * NC, (y + 1) * NC, 3, 0, 7); c.fill(); });
+    c.strokeStyle = '#fff'; c.strokeRect(r.x * NC, r.y * NC, 2 * NC, 2 * NC);
+  }
+  c.font = 'bold 11px system-ui'; c.textBaseline = 'top';
+  N.robots.forEach((r, i) => { c.fillStyle = '#000a'; c.fillRect(r.x * NC, r.y * NC, 12, 12); c.fillStyle = '#fff'; c.fillText(i, r.x * NC + 2, r.y * NC + 1); });
+  // vista previa del rectángulo / zona que se está arrastrando, y el cursor
+  if (nArrastre && (nArrastre.tipo === 'rect' || nArrastre.tipo === 'zona')) {
+    const [a, b] = nArrastre.desde, [p, q] = nArrastre.hasta;
+    c.strokeStyle = nArrastre.tipo === 'zona' ? '#f0c674' : '#4fc3d9'; c.lineWidth = 2;
+    c.strokeRect(Math.min(a, p) * NC, Math.min(b, q) * NC, (Math.abs(p - a) + 1) * NC, (Math.abs(q - b) + 1) * NC);
+  } else if (nHover) {
+    const [x, y] = nHover, ancho = ['celula', 'robot'].includes(nHerr) ? 2 : 1;
+    c.strokeStyle = '#fff'; c.lineWidth = 1; c.strokeRect(x * NC + 0.5, y * NC + 0.5, ancho * NC - 1, ancho * NC - 1);
+  }
+}
+const celdaMapa = e => {
+  const b = nmapa.getBoundingClientRect();
+  return [Math.max(0, Math.min(39, Math.floor((e.clientX - b.left) / b.width * 40))),
+          Math.max(0, Math.min(23, Math.floor((e.clientY - b.top) / b.height * 24)))];
+};
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const objEn = (lista, c, f) => { for (let i = lista.length - 1; i >= 0; i--) { const o = lista[i];
+  if (c >= o.x && c <= o.x + 1 && f >= o.y && f <= o.y + 1) return i; } return -1; };
+function ponerTile(N, c, f, v) {
+  if (f < 1 || f > 23) return;
+  N.mapa[(f - 1) * 40 + c] = v;
+  if (document.getElementById('nespejo').checked) N.mapa[(f - 1) * 40 + 39 - c] = v;
+}
+function rellenarMapa(N, c0, f0, v) {
+  const viejo = tile(N, c0, f0); if (viejo < 0 || viejo === v) return;
+  const pila = [[c0, f0]];
+  while (pila.length) {
+    const [c, f] = pila.pop();
+    if (tile(N, c, f) !== viejo) continue;
+    N.mapa[(f - 1) * 40 + c] = v;
+    pila.push([c + 1, f], [c - 1, f], [c, f + 1], [c, f - 1]);
+  }
+}
+const robotNuevo = (x, y) => ({ x, y, dira:6, dirb:2, pasos:16, clase:0x9C, vida:1,
+  zx0:clamp(x - 6, 0, 39), zx1:clamp(x + 7, 0, 39), zy0:clamp(y - 4, 1, 23), zy1:clamp(y + 5, 1, 23) });
+nmapa.addEventListener('contextmenu', e => e.preventDefault());
+nmapa.addEventListener('pointerdown', e => {
+  e.preventDefault();
+  const N = nivelAct(), [c, f] = celdaMapa(e), borrar = e.button === 2;
+  const antes = JSON.stringify(NV);
+  nArrastre = { antes, tipo:nHerr, desde:[c, f], hasta:[c, f], borrar };
+  nmapa.setPointerCapture(e.pointerId);
+  if (nHerr === 'bloque') ponerTile(N, c, f, borrar ? 0 : nTile);
+  else if (nHerr === 'relleno') { rellenarMapa(N, c, f, borrar ? 0 : nTile); if (document.getElementById('nespejo').checked) rellenarMapa(N, 39 - c, f, borrar ? 0 : nTile); }
+  else if (nHerr === 'jugador') { if (!borrar) { N.px = 48 + 4 * clamp(c, 1, 38); N.py = 32 + 8 * clamp(f - 1, 1, 20); } }
+  else if (nHerr === 'celula' || nHerr === 'robot') {
+    const lista = nHerr === 'celula' ? N.celulas : N.robots, i = objEn(lista, c, f);
+    if (borrar) { if (i >= 0) { lista.splice(i, 1); if (nHerr === 'robot') nRob = -1; } nArrastre.tipo = null; }
+    else if (i >= 0) { nArrastre.i = i; nArrastre.dx = c - lista[i].x; nArrastre.dy = f - lista[i].y; if (nHerr === 'robot') nRob = i; }
+    else if (lista.length < (nHerr === 'celula' ? MAXCEL : MAXROB)) {
+      const x = clamp(c, 0, 38), y = clamp(f, 1, 22);
+      lista.push(nHerr === 'celula' ? { x, y } : robotNuevo(x, y));
+      nArrastre.i = lista.length - 1; nArrastre.dx = c - x; nArrastre.dy = f - y;
+      if (nHerr === 'robot') nRob = nArrastre.i;
+    } else { alert(`Máximo ${nHerr === 'celula' ? MAXCEL + ' células' : MAXROB + ' robots'} por nivel (MAXCEL / MAXROB de datos.asm).`); nArrastre = null; }
+    pintarFormRobot();
+  } else if (nHerr === 'zona' && !N.robots[nRob]) { nArrastre = null; alert('Primero elige un robot (herramienta Robot).'); }
+  nRedibujar();
+});
+nmapa.addEventListener('pointermove', e => {
+  const [c, f] = celdaMapa(e), N = nivelAct();
+  nHover = [c, f];
+  const t = tile(N, c, f);
+  document.getElementById('nestado').textContent = `columna ${c}, fila ${f}` + (f === 0 ? ' (HUD, no se edita)' : ` · carácter ${t}`) +
+    (nHerr === 'jugador' ? ` · inicio: x = ${48 + 4 * clamp(c, 1, 38)}, y = ${32 + 8 * clamp(f - 1, 1, 20)}` : '');
+  const A = nArrastre;
+  if (A) {
+    if (A.hasta[0] === c && A.hasta[1] === f) return;
+    A.hasta = [c, f];
+    if (A.tipo === 'bloque') {   // línea desde el punto anterior para no dejar huecos
+      const [a, b] = A.ult || A.desde, n = Math.max(Math.abs(c - a), Math.abs(f - b));
+      for (let k = 1; k <= n; k++) ponerTile(N, Math.round(a + (c - a) * k / n), Math.round(b + (f - b) * k / n), A.borrar ? 0 : nTile);
+      A.ult = [c, f];
+    } else if (A.tipo === 'jugador' && !A.borrar) { N.px = 48 + 4 * clamp(c, 1, 38); N.py = 32 + 8 * clamp(f - 1, 1, 20); }
+    else if ((A.tipo === 'celula' || A.tipo === 'robot') && A.i !== undefined) {
+      const o = (A.tipo === 'celula' ? N.celulas : N.robots)[A.i], nx = clamp(c - A.dx, 0, 38), ny = clamp(f - A.dy, 1, 22);
+      if (A.tipo === 'robot') {   // la zona viaja con el robot
+        const ddx = nx - o.x, ddy = ny - o.y;
+        if (o.zx0 <= o.zx1 && o.zx0 + ddx >= 0 && o.zx1 + ddx <= 39) { o.zx0 += ddx; o.zx1 += ddx; }
+        if (o.zy0 <= o.zy1 && o.zy0 + ddy >= 0 && o.zy1 + ddy <= 23) { o.zy0 += ddy; o.zy1 += ddy; }
+      }
+      o.x = nx; o.y = ny;
+    }
+  }
+  nRedibujar();
+});
+nmapa.addEventListener('pointerup', () => {
+  const A = nArrastre; nArrastre = null;
+  if (!A) return;
+  const N = nivelAct(), [a, b] = A.desde, [p, q] = A.hasta;
+  if (A.tipo === 'rect') {
+    for (let f = Math.min(b, q); f <= Math.max(b, q); f++) for (let c = Math.min(a, p); c <= Math.max(a, p); c++) ponerTile(N, c, f, A.borrar ? 0 : nTile);
+  } else if (A.tipo === 'zona' && N.robots[nRob]) {
+    Object.assign(N.robots[nRob], { zx0:Math.min(a, p), zx1:Math.max(a, p), zy0:Math.min(b, q), zy1:Math.max(b, q) });
+  }
+  if (JSON.stringify(NV) !== A.antes) { nGuardarUndo(A.antes); nCambio(); } else nRedibujar();
+  pintarFormRobot();
+});
+nmapa.addEventListener('pointerleave', () => { nHover = null; document.getElementById('nestado').textContent = ''; nRedibujar(); });
+
+// --- lista de niveles ---
+function pintarListaNiveles() {
+  const cont = document.getElementById('nlista'); cont.innerHTML = '';
+  NV.niveles.forEach((N, i) => {
+    const d = document.createElement('div'); d.className = i === nSel ? 'sel' : '';
+    d.innerHTML = `<b>${i + 1}</b> · ${escaparHtml(N.nombre || 'sin nombre')} <small>· ${N.celulas.length} cél. · ${N.robots.length} rob.</small>`;
+    d.addEventListener('click', () => { nSel = i; nRob = -1; nRefrescar(); });
+    cont.appendChild(d);
+  });
+  document.getElementById('nnombre').value = nivelAct().nombre || '';
+  document.getElementById('nborrar').disabled = NV.niveles.length < 2;
+  document.getElementById('nsubir').disabled = nSel === 0;
+  document.getElementById('nbajar').disabled = nSel === NV.niveles.length - 1;
+  document.getElementById('nduplicar').disabled = document.getElementById('nnuevo').disabled = NV.niveles.length >= 99;
+}
+const escaparHtml = t => t.replace(/[&<>"]/g, ch => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;' }[ch]));
+function nOperacion(f) { nGuardarUndo(); f(); nAjustar(); nCambio(true); }
+document.getElementById('nnuevo').addEventListener('click', () => nOperacion(() => {
+  NV.niveles.splice(nSel + 1, 0, nivelNuevo('Nivel ' + (NV.niveles.length + 1))); nSel++; nRob = -1;
+}));
+document.getElementById('nduplicar').addEventListener('click', () => nOperacion(() => {
+  const d = copia(nivelAct()); d.nombre = (d.nombre || '') + ' (copia)'; NV.niveles.splice(nSel + 1, 0, d); nSel++;
+}));
+document.getElementById('nborrar').addEventListener('click', () => {
+  if (!confirm(`¿Borrar el nivel ${nSel + 1} «${nivelAct().nombre}»? (Se puede deshacer)`)) return;
+  nOperacion(() => { NV.niveles.splice(nSel, 1); nRob = -1; });
+});
+const mover = d => nOperacion(() => { const [x] = NV.niveles.splice(nSel, 1); nSel += d; NV.niveles.splice(nSel, 0, x); });
+document.getElementById('nsubir').addEventListener('click', () => mover(-1));
+document.getElementById('nbajar').addEventListener('click', () => mover(1));
+let nNombreAntes = null;
+document.getElementById('nnombre').addEventListener('focus', () => nNombreAntes = JSON.stringify(NV));
+document.getElementById('nnombre').addEventListener('input', e => { nivelAct().nombre = e.target.value; nCambio(); });
+document.getElementById('nnombre').addEventListener('change', () => {
+  if (nNombreAntes && nNombreAntes !== JSON.stringify(NV)) nGuardarUndo(nNombreAntes);
+  nNombreAntes = JSON.stringify(NV);
+});
+document.getElementById('nborde').addEventListener('click', () => nOperacion(() => {
+  const N = nivelAct(), b = nivelNuevo().mapa;
+  b.forEach((v, i) => { if (v) N.mapa[i] = v; });
+}));
+document.getElementById('nvaciar').addEventListener('click', () => {
+  if (!confirm('¿Vaciar el mapa de este nivel? Quedan solo el borde, el inicio y sin células ni robots. (Se puede deshacer)')) return;
+  nOperacion(() => { const N = nivelAct(), v = nivelNuevo(); N.mapa = v.mapa; N.celulas = []; N.robots = []; nRob = -1; });
+});
+document.getElementById('ndeshacer').addEventListener('click', nDeshacer);
+document.getElementById('nrehacer').addEventListener('click', nRehacer);
+['nespejo', 'nrejilla'].forEach(id => document.getElementById(id).addEventListener('change', nRedibujar));
+document.querySelectorAll('[data-nh]').forEach(b => b.addEventListener('click', () => { nHerr = b.dataset.nh; nRefrescar(); }));
+document.getElementById('nprobar').addEventListener('click', () => {
+  document.getElementById('nivelsel').value = nSel; cargarNivel(nSel);
+  escena.scrollIntoView({ behavior:'smooth', block:'center' }); escena.focus({ preventScroll:true });
+});
+// el Ctrl+Z va a los niveles si lo último que se tocó fue este panel
+document.addEventListener('pointerdown', e => { focoNiveles = !!e.target.closest('#pniveles'); }, true);
+function teclaNiveles(e) {
+  if (!focoNiveles || !(e.ctrlKey || e.metaKey)) return false;
+  const k = e.key.toLowerCase();
+  if (k === 'z') { e.preventDefault(); e.shiftKey ? nRehacer() : nDeshacer(); return true; }
+  if (k === 'y') { e.preventDefault(); nRehacer(); return true; }
+  return false;
+}
+
+// --- bloques para pintar ---
+function pintarTiles() {
+  const cont = document.getElementById('ntiles');
+  if (!cont.children.length) NTILES.forEach(t => {
+    const cv = document.createElement('canvas'); cv.width = 16; cv.height = 16; cv.dataset.t = t;
+    cv.title = `${t} · ${NOMBRE_TILE[t] || 'Decorado (sólido)'}`;
+    cv.addEventListener('click', () => { nTile = t; if (!['bloque', 'rect', 'relleno'].includes(nHerr)) nHerr = 'bloque'; nRefrescar(); });
+    cont.appendChild(cv);
+  });
+  [...cont.children].forEach(cv => {
+    const t = +cv.dataset.t, cx = cv.getContext('2d');
+    cx.imageSmoothingEnabled = false; cx.fillStyle = PAL[0]; cx.fillRect(0, 0, 16, 16);
+    if (t) pintarChar(cx, t, 0, 0, 16, 16); else { cx.strokeStyle = '#e0605a'; cx.lineWidth = 2; cx.beginPath(); cx.moveTo(3, 3); cx.lineTo(13, 13); cx.stroke(); }
+    cv.classList.toggle('sel', t === nTile);
+  });
+  document.getElementById('ntilenom').textContent = `Bloque ${nTile}: ${NOMBRE_TILE[nTile] || 'decorado (sólido, como un muro)'}`;
+}
+
+// --- propiedades del robot elegido ---
+function pintarFormRobot() {
+  const cont = document.getElementById('nrobot'), r = nivelAct().robots[nRob];
+  if (!r) { cont.innerHTML = '<p class="ayuda" style="font-size:12px">Con la herramienta <b>Robot</b> haz clic en uno para elegirlo (o en un lugar vacío para poner uno nuevo).</p>'; return; }
+  const dirs = sel => NOMBRE_DIR.map((t, i) => `<option value="${i}"${i === sel ? ' selected' : ''}>${t}</option>`).join('');
+  const n = (k, min, max) => `<input type="number" data-k="${k}" min="${min}" max="${max}" value="${r[k]}">`;
+  cont.innerHTML = `<table>
+    <tr><td>Robot</td><td><b>${nRob}</b> en (${r.x}, ${r.y})</td></tr>
+    <tr><td>Tipo</td><td><select data-k="clase"><option value="156"${r.clase === 0x9C ? ' selected' : ''}>rojo ($9C, COLOR3)</option>
+      <option value="28"${r.clase === 0x1C ? ' selected' : ''}>normal ($1C)</option></select></td></tr>
+    <tr><td>Vida</td><td>${n('vida', 1, 9)} disparos</td></tr>
+    <tr><td>Patrulla</td><td><select data-k="dira">${dirs(r.dira)}</select></td></tr>
+    <tr><td>y después</td><td><select data-k="dirb">${dirs(r.dirb)}</select></td></tr>
+    <tr><td>Pasos</td><td>${n('pasos', 0, 254)} <small class="ayuda">(0 = siempre la 1ª)</small></td></tr>
+    <tr><td>Zona cols.</td><td>${n('zx0', 0, 255)} a ${n('zx1', 0, 255)}</td></tr>
+    <tr><td>Zona filas</td><td>${n('zy0', 0, 255)} a ${n('zy1', 0, 255)}</td></tr></table>
+    <div class="grupo" style="margin-top:6px"><button data-z="toda">Zona: toda</button><button data-z="nunca">Nunca persigue</button>
+      <button data-z="dibujar">Dibujar zona</button><button data-z="borrar">Borrar robot</button></div>
+    <p class="ayuda" style="font-size:12px">Hace la 1ª dirección durante la mitad de los pasos y la 2ª la otra mitad
+      (avanza una casilla cada 2 pasos, unos 22 cuadros). Si el centro del jugador entra en la zona amarilla, lo persigue
+      para siempre. La línea verde es su patrulla.</p>`;
+  cont.querySelectorAll('[data-k]').forEach(el => el.addEventListener('change', () => {
+    const v = parseInt(el.value, 10); if (isNaN(v)) { el.value = r[el.dataset.k]; return; }
+    const rr = nivelAct().robots[nRob]; if (!rr) return;
+    nGuardarUndo(); rr[el.dataset.k] = clamp(v, +el.min, +el.max); el.value = rr[el.dataset.k]; nCambio();
+  }));
+  cont.querySelectorAll('[data-z]').forEach(b => b.addEventListener('click', () => {
+    const z = b.dataset.z, rr = nivelAct().robots[nRob];
+    if (z === 'dibujar') { nHerr = 'zona'; nRefrescar(); return; }
+    nGuardarUndo();
+    if (z === 'toda') Object.assign(rr, { zx0:0, zx1:39, zy0:0, zy1:23 });
+    else if (z === 'nunca') Object.assign(rr, { zx0:255, zx1:0, zy0:255, zy1:0 });
+    else { nivelAct().robots.splice(nRob, 1); nRob = -1; }
+    nCambio(true);
+  }));
+}
+
+// --- avisos del nivel ---
+function avisosNivel(N) {
+  const A = [], ocupa = (x, y) => [[0, 0], [1, 0], [0, 1], [1, 1]].some(([dx, dy]) => tile(N, x + dx, y + dy));
+  if (!N.celulas.length) A.push('No tiene células: el nivel se termina apenas empieza.');
+  if (N.celulas.length > MAXCEL) A.push(`Tiene ${N.celulas.length} células; el máximo es ${MAXCEL}.`);
+  if (N.robots.length > MAXROB) A.push(`Tiene ${N.robots.length} robots; el máximo es ${MAXROB}.`);
+  const f0 = (N.py + 2 - 32) >> 3, f1 = (N.py + 21 - 32) >> 3, c0 = (N.px - 48) >> 2, c1 = (N.px + 7 - 48) >> 2;
+  let choca = false;
+  for (let f = f0; f <= f1; f++) for (let c = c0; c <= c1; c++) { const t = tile(N, c, f); if (t && (t < 0x14 || t >= 0x34)) choca = true; }
+  if (choca) A.push('El jugador empieza encima de un bloque: no se va a poder mover.');
+  N.celulas.forEach((o, i) => { if (ocupa(o.x, o.y)) A.push(`La célula en (${o.x}, ${o.y}) está encima de un bloque.`);
+    if (N.celulas.some((p, k) => k > i && Math.abs(p.x - o.x) < 2 && Math.abs(p.y - o.y) < 2)) A.push(`Hay células encimadas en (${o.x}, ${o.y}).`); });
+  N.robots.forEach((r, i) => {
+    if (ocupa(r.x, r.y)) A.push(`El robot ${i} está encima de un bloque.`);
+    if (N.celulas.some(o => Math.abs(o.x - r.x) < 2 && Math.abs(o.y - r.y) < 2)) A.push(`El robot ${i} está encima de una célula.`);
+    if (N.robots.some((p, k) => k > i && Math.abs(p.x - r.x) < 2 && Math.abs(p.y - r.y) < 2)) A.push(`Los robots ${i} y otro están encimados.`);
+    if (r.x <= c1 && r.x + 1 >= c0 && r.y <= f1 && r.y + 1 >= f0) A.push(`El robot ${i} toca al jugador al empezar.`);
+  });
+  return A;
+}
+function pintarAvisos() {
+  const ul = document.getElementById('navisos'), A = avisosNivel(nivelAct());
+  ul.innerHTML = A.length ? A.map(t => `<li>${escaparHtml(t)}</li>`).join('') : '<li class="ok">✓ Sin problemas</li>';
+  const total = NV.niveles.reduce((s, N) => s + bytesNivel(N), 0);
+  const m = document.getElementById('nmemoria');
+  m.textContent = `${NV.niveles.length} nivel${NV.niveles.length === 1 ? '' : 'es'} · ${total} bytes de ~${PRESUPUESTO} libres` +
+    ` (este: ${bytesNivel(nivelAct())}).` + (total > PRESUPUESTO ? ' ¡No entran! mads va a dar error de $6000.' : '');
+  m.style.color = total > PRESUPUESTO ? 'var(--peligro)' : '';
+}
+
+// --- refresco, guardado y archivo ---
+function nRedibujar() { dibujarNivelEditor(); }
+function nRefrescar(form = true) {
+  document.querySelectorAll('[data-nh]').forEach(b => b.classList.toggle('on', b.dataset.nh === nHerr));
+  document.getElementById('ndeshacer').disabled = !nDeshacerPila.length;
+  document.getElementById('nrehacer').disabled = !nRehacerPila.length;
+  pintarListaNiveles(); pintarTiles(); if (form) pintarFormRobot(); pintarAvisos(); pintarSelPrueba(); nRedibujar();
+}
+let ntGuardar = 0;
+function nCambio(form) {   // form: rehacer también el formulario del robot (no mientras se escribe en él)
+  nRefrescar(!!form);
+  document.getElementById('nexp').value = exportarNiveles(NV.niveles);
+  if (+document.getElementById('nivelsel').value === nSel) cargarNivel(nSel);
+  clearTimeout(ntGuardar);
+  ntGuardar = setTimeout(() => { try { localStorage.setItem('atari-juego-niveles', JSON.stringify(NV)); } catch (e) {} }, 300);
+}
+function pintarSelPrueba() {
+  const s = document.getElementById('nivelsel'), v = s.value;
+  s.innerHTML = NV.niveles.map((N, i) => `<option value="${i}">${i + 1} · ${escaparHtml(N.nombre || '')}</option>`).join('');
+  s.value = v !== '' && +v < NV.niveles.length ? v : '0';
+}
+function cargarNivelesTexto(texto) {
+  let nuevos;
+  try { nuevos = leerNiveles(texto); } catch (e) { alert('No pude leer los niveles: ' + e.message); return; }
+  nGuardarUndo(); NV.niveles = nuevos; nSel = 0; nRob = -1; nCambio(true);
+}
+document.getElementById('ndescargar').addEventListener('click', () => {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([exportarNiveles(NV.niveles)], { type:'text/plain' }));
+  a.download = 'niveles.asm'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+});
+document.getElementById('ncopiar').addEventListener('click', () => {
+  const t = document.getElementById('nexp'); t.value = exportarNiveles(NV.niveles); t.select();
+  if (navigator.clipboard) navigator.clipboard.writeText(t.value).catch(() => document.execCommand('copy'));
+  else document.execCommand('copy');
+});
+document.getElementById('npegar').addEventListener('click', () => cargarNivelesTexto(document.getElementById('nexp').value));
+document.getElementById('nabrir').addEventListener('click', () => document.getElementById('narchivo').click());
+document.getElementById('narchivo').addEventListener('change', async e => {
+  const f = e.target.files[0]; e.target.value = ''; if (f) cargarNivelesTexto(await f.text());
+});
+document.getElementById('ndescartar').addEventListener('click', () => {
+  nGuardarUndo(); NV = { niveles: copia(NBASE) }; nSel = 0; nRob = -1;
+  document.getElementById('naviso').style.display = 'none'; nCambio(true);
+});
+
+// arranque: borrador del navegador, si lo hay; si el editor se sirve por http, lee niveles.asm
+(function () {
+  let b = null;
+  try { b = JSON.parse(localStorage.getItem('atari-juego-niveles')); } catch (e) {}
+  if (b && Array.isArray(b.niveles) && b.niveles.length && JSON.stringify(b.niveles) !== JSON.stringify(NBASE)) {
+    NV = b; document.getElementById('naviso').style.display = 'block';
+  }
+  fetch('niveles.asm').then(r => r.ok ? r.text() : '').catch(() => '').then(t => {
+    if (!t) return;
+    try { NBASE = leerNiveles(t); } catch (e) { return; }
+    if (document.getElementById('naviso').style.display !== 'block') { NV = { niveles: copia(NBASE) }; nAjustar(); nCambio(true); }
+  });
+  nAjustar(); nCambio(true); cargarNivel(0);
+  window.nListo = true;
+})();
 
 // ===================== exportar =====================
 const bin8 = v => v.toString(2).padStart(8, '0');
@@ -837,18 +1332,8 @@ function vidaABytes() {
 }
 function exportar() {
   const L = [], C = S.col;
-  L.push('; ---------- Player 0: cuerpo del robot (color ' + hex(C.p0) + ') ----------');
-  for (let i = 0; i < 3; i++) {
-    L.push(`; frame ${i} (offset ${i * 12}): ${NOMBRES[i].toLowerCase()}`);
-    for (let f = 0; f < 12; f++) L.push((i === 0 && f === 0 ? 'sprite  ' : '        ') + '.byte %' + bin8(S.body[i][f]));
-  }
-  L.push('', '; ---------- Player 1: detalles del robot (color ' + hex(C.p1) + ', uno por frame) ----------');
-  for (let i = 0; i < 3; i++) {
-    L.push(`; detalles ${i} (offset ${i * 12}): ${NOMBRES[i].toLowerCase()}`);
-    for (let f = 0; f < 12; f++) L.push((i === 0 && f === 0 ? 'detalle ' : '        ') + '.byte %' + bin8(S.det[i][f]));
-  }
   const vb = vidaABytes();
-  L.push('', '; ---------- Vidas HUD (Player 2+3, 11x3) ----------');
+  L.push('; ---------- Vidas HUD (Player 2+3, 11x3) ----------');
   for (let f = 0; f < 3; f++) L.push((f === 0 ? 'vida_icono ' : '        ') + '.byte %' + bin8(vb[f * 2]) + ',%' + bin8(vb[f * 2 + 1]));
   L.push('', '; ---------- Bala (missiles 0+1, 2x4): M1 = col 0 (bits 3-2), M0 = col 1 (bits 1-0) ----------');
   for (let f = 0; f < 4; f++) {
@@ -881,28 +1366,20 @@ document.getElementById('copiar').addEventListener('click', () => {
 
 // ===================== importar =====================
 function cargarTexto(texto, destino) {
-  // bytes: %........ (robot y vidas) y %.... (bala). Cada bloque se busca por su
-  // etiqueta (sprite, detalle, vida_icono, bala_icono), que pueden estar en
+  // bytes: %........ (vidas) y %.... (bala). Cada bloque se busca por su
+  // etiqueta (vida_icono, bala_icono, kaiju_*), que pueden estar en
   // cualquier orden; sin etiquetas se usa el orden del export.
   let algo = false;
   const bytes = t => [...t.matchAll(/%([01]{1,8})/g)].map(m => parseInt(m[1], 2));
   const todos = bytes(texto);
   // el orden por posición solo vale para .byte pegados sin ninguna etiqueta
-  const conEtiquetas = /^(sprite|detalle|vida_icono|bala_icono|kaiju_\w+)\b/m.test(texto);
+  const conEtiquetas = /^(vida_icono|bala_icono|kaiju_\w+)\b/m.test(texto);
   const tomar = (etiqueta, desde, n) => {
     const i = texto.search(new RegExp('^' + etiqueta + '\\b', 'm'));
     const v = i >= 0 ? bytes(texto.slice(i)).slice(0, n) : (desde < 0 || conEtiquetas) ? [] : todos.slice(desde, desde + n);
     return v.length === n ? v : null;
   };
-  const cuerpo = tomar('sprite', 0, 36), detalle = tomar('detalle', 36, 36);
-  const vida = tomar('vida_icono', 72, 6), bala = tomar('bala_icono', 78, 4);
-  if (cuerpo && detalle) {
-    for (let i = 0; i < 3; i++) {
-      destino.body[i] = cuerpo.slice(i * 12, i * 12 + 12);
-      destino.det[i] = detalle.slice(i * 12, i * 12 + 12);
-    }
-    algo = true;
-  }
+  const vida = tomar('vida_icono', 0, 6), bala = tomar('bala_icono', 6, 4);
   if (vida) {
     for (let f = 0; f < 3; f++) for (let c = 0; c < 11; c++)
       destino.vida[f][c] = c < 8 ? (vida[f * 2] >> (7 - c)) & 1 : (vida[f * 2 + 1] >> (15 - c)) & 1;
@@ -921,7 +1398,7 @@ function cargarTexto(texto, destino) {
     destino.kaiju[r.toUpperCase() === 'PCOLR0' ? 'p0' : 'p1'] = parseInt(v, 16) & 0xFE; algo = true;
   }
   // colores: pares «lda #valor» … «sta REGISTRO»
-  const MAPA = { PCOLR0:'p0', PCOLR1:'p1', PCOLR2:'vida', COLOR3:'bala', COLOR2:'fondo', COLOR1:'texto' };
+  const MAPA = { PCOLR2:'vida', COLOR3:'bala', COLOR2:'fondo', COLOR1:'texto' };
   let a = null;
   texto.split('\n').forEach(lin => {
     const l = lin.replace(/;.*/, '');
@@ -932,7 +1409,6 @@ function cargarTexto(texto, destino) {
     if (!m || a === null) return;
     const r = m[1].toUpperCase();
     if (MAPA[r]) { destino.col[MAPA[r]] = a & 0xFE; algo = true; }
-    if (r === 'GPRIOR') { destino.col.mezcla = !!(a & 0x20); algo = true; }
   });
   return algo;
 }
@@ -954,8 +1430,12 @@ document.getElementById('archivo').addEventListener('change', async e => {
 // ===================== arranque =====================
 let borrador = null;
 try { borrador = JSON.parse(localStorage.getItem('atari-juego-editor')); } catch (e) {}
-if (borrador && borrador.body && borrador.col && !borrador.kaiju) borrador.kaiju = copia(INICIAL.kaiju);
-if (borrador && borrador.body && borrador.col && JSON.stringify(borrador) !== JSON.stringify(BASE)) {
+if (borrador && borrador.col) {   // los borradores viejos traen el robot original: se descarta
+  delete borrador.body; delete borrador.det;
+  ['p0', 'p1', 'mezcla'].forEach(k => delete borrador.col[k]);
+  if (!borrador.kaiju) borrador.kaiju = copia(INICIAL.kaiju);
+}
+if (borrador && borrador.col && JSON.stringify(borrador) !== JSON.stringify(BASE)) {
   S = borrador; document.getElementById('aviso').style.display = 'block';
 }
 document.getElementById('descartar').addEventListener('click', () => {

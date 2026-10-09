@@ -23,7 +23,6 @@ tmp     .byte 0         ; auxiliar para el dibujo espejado
 tmp2    .byte 0         ; auxiliar (mascaras de las vidas)
 mvx     .byte 0         ; movimiento pedido este frame: -1, 0, 1
 mvy     .byte 0         ; -2, 0, 2 (lineas)
-nivel   .byte 0         ; nivel de Kaiju en pantalla (0-5 = LEVEL1-6)
 fil0    .byte 0         ; caja del robot en filas/columnas (choca)
 fil1    .byte 0
 col0    .byte 0
@@ -34,17 +33,17 @@ gatant  .byte 1         ; STRIG0 del frame anterior (para disparar solo al apret
 puntos  .byte 0,0,0     ; puntuacion BCD, 6 digitos (alto, medio, bajo)
 
 ; --- partida (etapas.asm) ---
-etapa   .byte 0         ; 0-29: mundo = etapa/6 + 1, mapa = etapa%6 + 1, robots = DAT(etapa)
+etapa   .byte 0         ; nivel en juego: 0..NUM_NIVELES-1 (niveles.asm), se ve como LEVEL etapa+1
 etapa_ini .byte 0       ; etapa con la que empieza la partida (selector DEBUG)
 dbg_stick .byte $0F     ; STICK0 anterior del selector (para moverse al apretar)
         .if DEBUG
 ; linea de texto del titulo en DEBUG (ANTIC 7, 20 caracteres, fuente de la ROM)
-txt_debug dta d'   START LEVEL 1-1  '
-TXT_DEBUG_M = 15        ; posicion del digito del mundo (n va 2 despues)
+txt_debug dta d'   START LEVEL 1    '
+TXT_DEBUG_N = 15        ; posicion del numero de nivel (1 o 2 digitos)
         .endif
 energia .byte 5         ; iconos de energia; 0 = fin de la partida
 invul   .byte 0         ; frames de invulnerabilidad que quedan tras un golpe
-fin     .byte 0         ; 1 = se disparo a una celula: se repite la etapa
+fin     .byte 0         ; 1 = se disparo a una celula: se repite el nivel
 cuenta  .byte 0         ; 0-11: animacion de las celulas (cambian a los 0 y 6)
 cnt11   .byte 11        ; frames hasta la proxima actualizacion de los enemigos
 sndtipo .byte 0         ; efecto que suena (SND_*)
@@ -60,7 +59,7 @@ tmp3    .byte 0         ; auxiliares
 ox_r    .byte 0
 oy_r    .byte 0
 
-; --- robots enemigos de la etapa (enemigos.asm), hasta MAXROB ---
+; --- robots enemigos del nivel (enemigos.asm), hasta MAXROB ---
 MAXROB  = 10
 nrob    .byte 0
 rob_x   :MAXROB .byte 0 ; casilla de arriba a la izquierda de sus 2 x 2 caracteres
@@ -79,7 +78,7 @@ rob_estado :MAXROB .byte 0      ; 1 = patrulla, 2 = persigue al jugador
 rob_vida :MAXROB .byte 0        ; disparos que aguanta
 rob_fase :MAXROB .byte 0        ; animacion; avanza cuando vuelve a 0
 
-; --- celulas de la etapa (celulas.asm), hasta MAXCEL ---
+; --- celulas del nivel (celulas.asm), hasta MAXCEL ---
 MAXCEL  = 18
 ncel    .byte 0
 celrest .byte 0         ; celulas que faltan recoger
@@ -151,93 +150,6 @@ dl_datos .byte $70,$70,$70
         .byte $41,<DLIST,>DLIST
 dl_fin
 
-
-; ---------- robot original (12 filas a doble linea) ----------
-; El juego ya no lo dibuja (usa las poses de Kaiju); se conserva porque
-; editor-sprite.html todavia lo edita.
-
-; ---------- Player 0: cuerpo del robot (color turquesa) ----------
-; frame 0 (offset 0): quieto
-sprite  .byte %00000000
-        .byte %00111100
-        .byte %00101000
-        .byte %00111100
-        .byte %00100000
-        .byte %00011000
-        .byte %11111111
-        .byte %10100101
-        .byte %00111100
-        .byte %00111100
-        .byte %00100100
-        .byte %01100110
-; frame 1 (offset 12): paso A
-        .byte %00000000
-        .byte %00111100
-        .byte %00101000
-        .byte %00111100
-        .byte %00100000
-        .byte %00011000
-        .byte %01111110
-        .byte %10100101
-        .byte %00111100
-        .byte %00111100
-        .byte %00101000
-        .byte %01001100
-; frame 2 (offset 24): paso B
-        .byte %00000000
-        .byte %00111100
-        .byte %00101000
-        .byte %00111100
-        .byte %00100000
-        .byte %00011000
-        .byte %01111110
-        .byte %10100101
-        .byte %00111100
-        .byte %00111100
-        .byte %00010100
-        .byte %00110010
-
-; ---------- Player 1: detalles del robot (color naranja, uno por frame) ----------
-; offsets 0/12/24, en paso con el cuerpo
-; detalles 0 (offset 0): quieto
-detalle .byte %00011000
-        .byte %00000000
-        .byte %00010100
-        .byte %01000010
-        .byte %00011100
-        .byte %00000000
-        .byte %00000000
-        .byte %00011000
-        .byte %10000001
-        .byte %00000000
-        .byte %00000000
-        .byte %00000000
-; detalles 1 (offset 12): paso A
-        .byte %00011000
-        .byte %00000000
-        .byte %00010100
-        .byte %01000010
-        .byte %00011100
-        .byte %00000000
-        .byte %00000000
-        .byte %00011000
-        .byte %01000001
-        .byte %00000000
-        .byte %00000000
-        .byte %00000000
-; detalles 2 (offset 24): paso B
-        .byte %00011000
-        .byte %00000000
-        .byte %00010100
-        .byte %01000010
-        .byte %00011100
-        .byte %00000000
-        .byte %00000000
-        .byte %00011000
-        .byte %10000010
-        .byte %00000000
-        .byte %00000000
-        .byte %00000000
 
 ; tabla para espejar el sprite (bit invertido): revtab[$3C] = $3C, etc.
 revtab  .byte $00,$80,$40,$C0,$20,$A0,$60,$E0
