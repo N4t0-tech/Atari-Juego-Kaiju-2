@@ -55,8 +55,8 @@ cp_col  clc
         sta parte
         rts
 
-; guarda la pantalla (filas 1-23) en el MAPAS de «parte», sin sus robots ni
-; sus celulas
+; guarda la pantalla (filas 1-23) en el MAPAS de «parte», sin sus robots (ni
+; sus explosiones) ni sus celulas
 guardar_parte
         ldx #0          ; sacar los robots vivos de esta parte
 gp_rob  cpx nrob
@@ -66,7 +66,12 @@ gp_rob  cpx nrob
         bne gp_rs
         lda rob_dir,x
         cmp #9
+        bne gp_borra
+        lda rob_expl,x  ; destruido: si todavia explota, se termina ya
         beq gp_rs
+        lda #0
+        sta rob_expl,x
+gp_borra
         jsr dir_robot
         jsr borrar2x2
 gp_rs   inx

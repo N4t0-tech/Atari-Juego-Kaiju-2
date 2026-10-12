@@ -97,6 +97,8 @@ rob_paso :MAXROB .byte 0        ; paso de la patrulla
 rob_estado :MAXROB .byte 0      ; 1 = patrulla, 2 = persigue al jugador
 rob_vida :MAXROB .byte 0        ; disparos que aguanta
 rob_fase :MAXROB .byte 0        ; animacion; avanza cuando vuelve a 0
+rob_golpe :MAXROB .byte 0       ; herido: pasos que le quedan de parpadeo
+rob_expl :MAXROB .byte 0        ; destruido: pasos que le quedan a la explosion
 rob_tiro :MAXROB .byte 0        ; tiradores: actualizaciones hasta el proximo disparo
 
 ; --- tiradores (balaenemiga.asm): robots con rob_clase / (fuente_tirador)
@@ -153,9 +155,11 @@ SND_DISPARO = 0
 SND_RECOGER = 1
 SND_GOLPE   = 2
 SND_TIRO    = 3
-snd_base .byte 20,60,40,90
-snd_paso .byte 6,$FC,12,$FA
-snd_dist .byte $A0,$A0,$80,$A0  ; $A = tono puro, $8 = ruido
+SND_EXPLOSION = 4       ; ruido que va bajando
+SND_IMPACTO = 5         ; robot herido: zumbido que va subiendo
+snd_base .byte 20,60,40,90,30,50
+snd_paso .byte 6,$FC,12,$FA,24,$F8
+snd_dist .byte $A0,$A0,$80,$A0,$80,$C0  ; $A = tono puro, $8 = ruido
 
 txt_level .byte $28,$29,$2A,$29,$28     ; "LEVEL" con la fuente de Kaiju
 hud_dirty .byte 1       ; 1 = hay que redibujar el HUD
@@ -226,6 +230,21 @@ fuente_tirador          .byte $0F,$3F,$35,$36,$35,$0F,$03,$AF   ; $40 izq. fase 
                         .byte $F0,$FC,$5C,$5C,$5C,$F0,$C0,$F8   ; $55 der. fase 1
                         .byte $FF,$C3,$3F,$33,$33,$3F,$C0,$C0   ; $56 der. fase 1
                         .byte $F8,$C0,$FC,$CC,$CC,$FC,$03,$03   ; $57 der. fase 1
+
+; explosion de un robot destruido (enemigos.asm): 2 x 2 caracteres en
+; EXPLO..EXPLO+3 (fase 0) y +4..+7 (fase 1), dibujados en inverso (pixel 11 =
+; COLOR3). EXPLO_PASOS pasos en total; a la mitad cambia a la fase 1
+EXPLO   = $48           ; $48-$4F: entre los tiradores, pasables y no solidos
+EXPLO_PASOS = 12
+GOLPE_PASOS = 8         ; parpadeo de un robot herido (cambia el bit de inverso)
+fuente_explosion        .byte $00,$00,$02,$00,$0B,$2F,$0F,$2F   ; $48 fase 0
+                        .byte $00,$00,$00,$88,$E0,$F8,$F0,$F8   ; $49 fase 0
+                        .byte $2F,$0F,$2F,$0B,$20,$00,$00,$00   ; $4A fase 0
+                        .byte $F8,$F0,$F8,$E0,$80,$88,$00,$00   ; $4B fase 0
+                        .byte $80,$20,$08,$42,$23,$0C,$8C,$31   ; $4C fase 1
+                        .byte $02,$42,$18,$20,$04,$C8,$30,$0E   ; $4D fase 1
+                        .byte $B0,$0C,$23,$08,$12,$08,$21,$80   ; $4E fase 1
+                        .byte $4C,$30,$31,$20,$08,$21,$02,$00   ; $4F fase 1
 
 ; tabla para espejar el sprite (bit invertido): revtab[$3C] = $3C, etc.
 revtab  .byte $00,$80,$40,$C0,$20,$A0,$60,$E0

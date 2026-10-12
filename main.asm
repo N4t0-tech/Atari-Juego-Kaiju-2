@@ -79,6 +79,7 @@ loop
         jsr dibujar_jugador
         jsr actualizar_bala
         jsr actualizar_enemigos
+        jsr animar_robots
         jsr actualizar_balas_enemigas
         jsr dibujar_celulas
         jsr contactos

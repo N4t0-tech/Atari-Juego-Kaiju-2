@@ -30,11 +30,13 @@ fnt_k2  lda kaiju_fuente+$100,x  ; los 200 restantes (57 x 8 = 456)
         inx
         cpx #200
         bne fnt_k2
-        ldx #63         ; y los 16 del tirador: $40-$47 y $50-$57
-fnt_t   lda fuente_tirador,x
+        ldx #63         ; los 16 del tirador: $40-$47 y $50-$57, y los 8
+fnt_t   lda fuente_tirador,x    ; de la explosion: $48-$4F
         sta FUENTE+TIROCLASE*8,x
         lda fuente_tirador+64,x
         sta FUENTE+(TIROCLASE+$10)*8,x
+        lda fuente_explosion,x
+        sta FUENTE+EXPLO*8,x
         dex
         bpl fnt_t
 
