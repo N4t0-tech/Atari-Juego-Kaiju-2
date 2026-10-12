@@ -7,7 +7,8 @@
 ; direcciones. Descubierto, se mueve el doble de rapido. Hay
 ; MAXEB balas enemigas a la vez: la 0 es el player 2 y la 1 el player 3
 ; (color PCOLR2/3). Mueren al tocar un bloque o al salir de la pantalla, pasan
-; por encima de celulas y robots, y al jugador le quitan 1 de energia (herir).
+; por encima de celulas y robots, y al jugador le quitan 1 de energia (herir);
+; mientras es invulnerable (invul) lo atraviesan.
 
 ; robot X persiguiendo (rob_estado = 2): elige rob_dir. Los robots comunes van
 ; hacia el jugador; el tirador mantiene la distancia: lejos (> DIST_MAX) se
@@ -278,7 +279,9 @@ abe_vuela
         bcc abe_jug     ; vacio
         jsr solido
         bcs abe_muere
-abe_jug lda eb_x,x      ; toca al jugador? bala x..x+3, y..y+3 contra su
+abe_jug lda invul       ; invulnerable: la bala lo atraviesa
+        bne abe_pinta
+        lda eb_x,x      ; toca al jugador? bala x..x+3, y..y+3 contra su
         clc             ; caja px..px+7, py+2..py+21
         adc #3
         cmp px
