@@ -5,10 +5,10 @@
 ; de perseguir al jugador se pone a distancia de tiro (cazar), y cada
 ; TIRO_ESPERA actualizaciones le dispara si esta a su alcance, apuntando en 16
 ; direcciones. Descubierto, se mueve el doble de rapido. Hay
-; MAXEB balas enemigas a la vez: la 0 es el player 2 y la 1 el player 3
-; (color PCOLR2/3). Mueren al tocar un bloque o al salir de la pantalla, pasan
-; por encima de celulas y robots, y al jugador le quitan 1 de energia (herir);
-; mientras es invulnerable (invul) lo atraviesan.
+; MAXEB balas enemigas a la vez: la 0 es el missile 2 y la 1 el missile 3
+; (ancho doble, COLOR3). Mueren al tocar un bloque o al salir de la pantalla,
+; pasan por encima de celulas y robots, y al jugador que tocan le quitan 1 de
+; energia (herir, balas_al_jugador); mientras es invulnerable lo atraviesan.
 
 ; robot X persiguiendo (rob_estado = 2): elige rob_dir. Los robots comunes van
 ; hacia el jugador; el tirador mantiene la distancia: lejos (> DIST_MAX) se
@@ -150,7 +150,7 @@ ti_libre
         jmp sonar
 
 ; velocidad de la bala enemiga eb_slot para que vaya al centro del jugador
-; (px+4, py+12) en una de 16 direcciones. Se compara en unidades parecidas en
+; objetivo (tpx+4, tpy+12) en una de 16 direcciones. Se compara en unidades parecidas en
 ; pantalla: |dx| / 2 (HPOS) y |dy| / 4 (lineas). Con la mayor (big) y la menor
 ; (small): small * 5 < big -> recta; small * 3 < big * 2 -> 22,5 grados; si
 ; no, 45. Velocidades en ap_vx/ap_vy (4 HPOS = 8 lineas por paso, como la bala
@@ -161,7 +161,7 @@ apuntar
         lda #0
         sta ap_sx
         sta ap_sy
-        lda px          ; dx = (px + 4) - (eb_x + 2)
+        lda tpx         ; dx = (tpx + 4) - (eb_x + 2)
         clc
         adc #2
         sec
@@ -172,7 +172,7 @@ apuntar
         inc ap_sx       ; hacia la izquierda
 ap_x1   lsr
         sta ap_ax
-        lda py          ; dy = (py + 12) - (eb_y + 2)
+        lda tpy         ; dy = (tpy + 12) - (eb_y + 2)
         clc
         adc #10
         sec
@@ -245,9 +245,7 @@ ve_fin  rts
 actualizar_balas_enemigas
         ldx #MAXEB-1
 abe_una lda eb_activa,x
-        bne abe_vuela
-        jmp abe_sig
-abe_vuela
+        beq abe_sig
         jsr borrar_be
         lda eb_x,x
         clc
@@ -276,83 +274,87 @@ abe_vuela
         lda tmp3
         jsr bloque_en
         ldx eb_i
-        bcc abe_jug     ; vacio
+        bcc abe_pinta   ; vacio
         jsr solido
-        bcs abe_muere
-abe_jug lda invul       ; invulnerable: la bala lo atraviesa
-        bne abe_pinta
+        bcc abe_pinta
+abe_muere
+        lda #0
+        sta eb_activa,x
+        beq abe_sig
+abe_pinta
+        jsr pintar_be
+abe_sig dex
+        bpl abe_una
+        rts
+
+; balas enemigas que tocan al jugador activo (vivo): herir y la bala muere.
+; Invulnerable, lo atraviesan
+balas_al_jugador
+        lda invul
+        bne baj_fin
+        ldx #MAXEB-1
+baj_una lda eb_activa,x
+        beq baj_sig
         lda eb_x,x      ; toca al jugador? bala x..x+3, y..y+3 contra su
         clc             ; caja px..px+7, py+2..py+21
         adc #3
         cmp px
-        bcc abe_pinta
+        bcc baj_sig
         lda px
         clc
         adc #7
         cmp eb_x,x
-        bcc abe_pinta
+        bcc baj_sig
         lda eb_y,x
         clc
         adc #1          ; y+3 >= py+2
         cmp py
-        bcc abe_pinta
+        bcc baj_sig
         lda py
         clc
         adc #21
         cmp eb_y,x
-        bcc abe_pinta
+        bcc baj_sig
         jsr herir
-abe_muere
+        jsr borrar_be
         lda #0
         sta eb_activa,x
-        jmp abe_sig
-abe_pinta
-        jsr pintar_be
-abe_sig dex
-        bmi abe_fin
-        jmp abe_una
-abe_fin rts
+baj_sig dex
+        bpl baj_una
+baj_fin rts
 
-; dibuja la bala enemiga X (eb_icono, 4 lineas) en su player. Conserva X.
+; dibuja la bala enemiga X (4 lineas de su missile, 2 + MAXEB). Conserva X.
 pintar_be
-        ldy eb_y,x
         lda eb_x,x
-        cpx #0
-        bne pb_p3
-        sta HPOSP2
-        lda eb_icono
-        sta PMG+$600,y
-        lda eb_icono+1
-        sta PMG+$601,y
-        lda eb_icono+2
-        sta PMG+$602,y
-        lda eb_icono+3
-        sta PMG+$603,y
-        rts
-pb_p3   sta HPOSP3
-        lda eb_icono
-        sta PMG+$700,y
-        lda eb_icono+1
-        sta PMG+$701,y
-        lda eb_icono+2
-        sta PMG+$702,y
-        lda eb_icono+3
-        sta PMG+$703,y
+        sta HPOSM2,x
+        lda bits_m+2,x
+        sta tmp3
+        eor #$FF
+        sta tmp2
+        ldy eb_y,x
+        lda #4
+        sta tmp
+pb_lin  lda PMG+$300,y
+        and tmp2
+        ora tmp3
+        sta PMG+$300,y
+        iny
+        dec tmp
+        bne pb_lin
         rts
 
-; borra la bala enemiga X de su player. Conserva X.
+; borra la bala enemiga X de su missile. Conserva X.
 borrar_be
+        lda bits_m+2,x
+        eor #$FF
+        sta tmp2
         ldy eb_y,x
-        lda #0
-        cpx #0
-        bne bb_p3
-        sta PMG+$600,y
-        sta PMG+$601,y
-        sta PMG+$602,y
-        sta PMG+$603,y
-        rts
-bb_p3   sta PMG+$700,y
-        sta PMG+$701,y
-        sta PMG+$702,y
-        sta PMG+$703,y
+        lda #4
+        sta tmp
+bb_lin  lda PMG+$300,y
+        and tmp2
+        sta PMG+$300,y
+        iny
+        dec tmp
+        bne bb_lin
         rts

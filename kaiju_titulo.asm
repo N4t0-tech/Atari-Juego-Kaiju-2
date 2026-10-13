@@ -6,11 +6,9 @@
 ; La imagen cruza un limite de 4 KB: la lista de pantalla necesita un LMS
 ; nuevo en la linea que empieza en una direccion multiplo de $1000.
 
-KAIJU_TITULO_LINEAS     = 196   ; lineas que mostraba el juego
 KAIJU_TITULO_COLOR0     = $C8   ; pixel 01
 KAIJU_TITULO_COLOR1     = $DE   ; pixel 10
 KAIJU_TITULO_COLOR2     = $CC   ; pixel 11
-KAIJU_TITULO_COLOR4     = $00   ; pixel 00 (fondo)
 
 ; El juego la usa en dos bloques de 4 KB (una linea de 40 bytes no puede
 ; cruzar un limite de 4 KB): lineas 0-101 en $6000 y 102-195 en $7000.

@@ -103,10 +103,15 @@ Al terminar pulsa <strong>Exportar</strong> y pásame el texto: yo actualizo <co
 
 <!-- ============ KAIJU ============ -->
 <div class="panel">
-  <h2>Kaiju · poses 8 × 24 · Player 0 + Player 1 (resolución de 1 línea)</h2>
+  <h2>Kaiju · poses 8 × 24 · <span id="kjtit">Player 0 + Player 1</span> (resolución de 1 línea)</h2>
+  <div class="grupo" id="kjug">
+    <button data-kj="0" class="on">Jugador 1 · kaiju_graficos.asm</button>
+    <button data-kj="1">Jugador 2 · kaiju2_graficos.asm</button>
+  </div>
   <p class="ayuda">Las poses de <code>kaiju_graficos.asm</code>. Cada fila es una sola línea de pantalla,
     por eso los píxeles son el doble de anchos que de altos. El juego original siempre usaba la mezcla
-    (<code>GPRIOR = $31</code>): pintar en las dos capas da el 3er color.</p>
+    (<code>GPRIOR = $31</code>): pintar en las dos capas da el 3er color. El jugador 2 (cooperativo) tiene
+    sus propias poses y colores (<code>kaiju2_graficos.asm</code>, Player 2 + 3).</p>
   <div class="fila">
     <div>
       <div class="grupo" id="herr">
@@ -141,17 +146,10 @@ Al terminar pulsa <strong>Exportar</strong> y pásame el texto: yo actualizo <co
   </div>
 </div>
 
-<!-- ============ VIDAS + BALA ============ -->
+<!-- ============ BALA + PANTALLA ============ -->
 <div class="fila">
   <div class="panel">
-    <h2>Vidas del HUD · 11 × 3 · Player 2 + 3 (el juego ya no las dibuja)</h2>
-    <p class="ayuda" style="max-width:30em">3 mini-iconos en las columnas 0-2, 4-6 y 8-10. Con 2 vidas el juego
-      tapa el 3º y con 1 vida deja solo el 1º.</p>
-    <canvas id="gvida" class="rejilla"></canvas>
-    <div class="slots" style="margin-top:10px" id="slot_vida"></div>
-  </div>
-  <div class="panel">
-    <h2>Bala · 2 × 4 · Missiles 0 + 1 (color = COLOR3, el mismo que los enemigos)</h2>
+    <h2>Bala · 2 × 4 · un missile de ancho doble por jugador (color = COLOR3, el mismo que los enemigos)</h2>
     <p class="ayuda" style="max-width:22em">Cada columna es un bloque de 2 píxeles de ancho.
       Se ve igual en las 8 direcciones.</p>
     <canvas id="gbala" class="rejilla"></canvas>
@@ -236,8 +234,6 @@ Al terminar pulsa <strong>Exportar</strong> y pásame el texto: yo actualizo <co
   <canvas id="escena" tabindex="0" width="320" height="192"></canvas>
   <div class="grupo" style="margin-top:8px; align-items:center">
     Nivel: <select id="nivelsel"></select>
-    <span style="margin-left:12px">Vidas:</span> <button data-vidas="3" class="on">3</button><button data-vidas="2">2</button>
-    <button data-vidas="1">1</button><button data-vidas="0">0</button>
     <label style="margin-left:12px"><input type="checkbox" id="sonido"> Sonido del disparo</label>
   </div>
 </div>
@@ -252,7 +248,7 @@ Al terminar pulsa <strong>Exportar</strong> y pásame el texto: yo actualizo <co
     <code>kaiju_graficos.asm</code>, o abre esos archivos (puedes elegir varios a la vez).</p>
   <textarea id="imp" style="height:100px; color:var(--texto)"></textarea>
   <div class="grupo" style="margin-top:6px"><button id="cargar">Cargar en el editor</button>
-    <button id="abrir">Abrir datos.asm / main.asm / kaiju_graficos.asm…</button></div>
+    <button id="abrir">Abrir datos.asm / main.asm / kaiju_graficos.asm / kaiju2_graficos.asm…</button></div>
   <input type="file" id="archivo" accept=".asm" multiple style="display:none">
 </div>
 
@@ -266,19 +262,13 @@ Al terminar pulsa <strong>Exportar</strong> y pásame el texto: yo actualizo <co
 
 <script>
 // ===================== datos iniciales =====================
-// OJO: copia de los bytes de datos.asm (vida_icono, bala_icono)
+// OJO: copia de los bytes de datos.asm (bala_icono)
 // y de los colores de main.asm (rutina iniciar). Si cambian allí hay que
 // actualizarlos aquí (lo mismo con kaiju_graficos.asm), o usar «Abrir…» / el fetch automático (solo con servidor http).
 const INICIAL = {
-  // vida_icono: rejilla 3 filas x 11 columnas
-  vida: [
-    [1,0,1,0,1,0,1,0,1,0,1],
-    [1,1,1,0,1,1,1,0,1,1,1],
-    [0,1,0,0,0,1,0,0,0,1,0]
-  ],
   // bala_icono: 4 filas x 2 columnas (M1 = col 0, bits 3-2; M0 = col 1, bits 1-0)
   bala: [[0,0],[1,1],[1,1],[0,0]],
-  // poses de Kaiju (kaiju_graficos.asm): 7 poses x (P0 cuerpo + P1 contorno) x 24 filas,
+  // poses de Kaiju (kaiju_graficos.asm): 6 poses x (P0 cuerpo + P1 contorno) x 24 filas,
   // en el orden de KPOSES. Colores KAIJU_PCOLR0/1; siempre con mezcla (GPRIOR $31).
   kaiju: { p0:0xB8, p1:0x3A, poses:[
       { p0:[0x00,0x00,0x00,0x3C,0x3C,0x28,0x3C,0x20,0x3C,0x18,0x7E,0xB5,0xBD,0xBD,0xBD,0x3C,0x3C,0x3C,0x24,0x24,0x24,0x00,0x00,0x00],
@@ -292,14 +282,15 @@ const INICIAL = {
       { p0:[0x00,0x00,0x00,0x3C,0x3C,0x3C,0x3C,0x3C,0x3C,0x18,0x3C,0x7E,0xBE,0xBE,0xBE,0x3E,0x3C,0x3C,0x24,0x20,0x20,0x00,0x00,0x00],
         p1:[0x00,0x00,0x18,0x3C,0x3C,0x3C,0x7E,0x3C,0x3C,0x18,0x3C,0x7E,0xBE,0xBE,0xBE,0xBE,0x02,0x3C,0x24,0x26,0x20,0x30,0x00,0x00] },
       { p0:[0x00,0x00,0x00,0x3C,0x3C,0x14,0x3C,0x04,0x3C,0x18,0x7E,0xB5,0xBD,0xBD,0xBD,0x3C,0x3C,0x3C,0x24,0x24,0x24,0x00,0x00,0x00],
-        p1:[0x00,0x00,0x18,0x3C,0x3C,0x3C,0x7E,0x3C,0x3C,0x18,0x7E,0xAD,0xA5,0xA5,0xA5,0xBD,0x00,0x3C,0x24,0x24,0x24,0x6C,0x00,0x00] },
-      { p0:[0x00,0x00,0x3C,0x3C,0x28,0x3C,0x20,0x3C,0x18,0x7E,0xA5,0xA5,0xA5,0xA5,0x3C,0x3C,0x3C,0x24,0x24,0x24,0x00,0x00,0x00,0x00],
-        p1:[0x00,0x18,0x3C,0x3C,0x28,0x7E,0x20,0x3C,0x18,0x7E,0xA5,0xA5,0xA5,0xA5,0xBD,0x00,0x3C,0x24,0x24,0x24,0x36,0x00,0x00,0x00] }
+        p1:[0x00,0x00,0x18,0x3C,0x3C,0x3C,0x7E,0x3C,0x3C,0x18,0x7E,0xAD,0xA5,0xA5,0xA5,0xBD,0x00,0x3C,0x24,0x24,0x24,0x6C,0x00,0x00] }
   ] },
   // colores de main.asm
-  col: { vida:0x44, bala:0x26, fondo:0x00, texto:0x0E }
+  col: { bala:0x26, fondo:0x00 }
 };
 const copia = o => JSON.parse(JSON.stringify(o));
+// jugador 2 (kaiju2_graficos.asm): sus 6 poses y colores KAIJU2_PCOLR0/1;
+// arranca como copia del jugador 1
+INICIAL.kaiju2 = { p0:0x78, p1:0x3A, poses:copia(INICIAL.kaiju.poses) };
 let BASE = copia(INICIAL);   // lo que tiene el juego (para «descartar borrador»)
 let S = copia(INICIAL);      // lo que se está editando
 
@@ -408,9 +399,6 @@ function rellenar(o, x0, y0, v) {
   }
 }
 
-crearRejilla({ id:'gvida', w:11, h:3, cw:24, ch:24,
-  get:(x, y) => S.vida[y][x], set:(x, y, v) => S.vida[y][x] = v,
-  color:v => v ? PAL[S.col.vida] : null, pincel:() => 1 });
 crearRejilla({ id:'gbala', w:2, h:4, cw:48, ch:24,   // cada columna = bloque de 2 px
   get:(x, y) => S.bala[y][x], set:(x, y, v) => S.bala[y][x] = v,
   color:v => v ? PAL[S.col.bala] : null, pincel:() => 1 });
@@ -427,35 +415,28 @@ function pintarSlots() {
     d.addEventListener('click', () => abrirPaleta(reg, nombre));
     document.getElementById(id).appendChild(d);
   };
-  ['slot_vida', 'slot_bala', 'slot_pant'].forEach(id => document.getElementById(id).innerHTML = '');
-  simple('slot_vida', 'vida', 'Color de las vidas', 'PCOLR2 + PCOLR3');
+  ['slot_bala', 'slot_pant'].forEach(id => document.getElementById(id).innerHTML = '');
   simple('slot_bala', 'bala', 'Color de la bala', 'COLOR3');
-  simple('slot_pant', 'fondo', 'Fondo', 'COLOR2 + COLOR4');
-  simple('slot_pant', 'texto', 'Brillo del texto', 'COLOR1 (solo brillo)');
-  const t = document.querySelector('#slot_pant .slot:last-child .muestra');
-  t.style.background = PAL[colorTexto()];
+  simple('slot_pant', 'fondo', 'Fondo', 'COLOR4');
 }
-// en GR.0 el texto toma el tono del fondo y solo el brillo de COLOR1
-const colorTexto = () => (S.col.fondo & 0xF0) | (S.col.texto & 0x0E);
 
 // ===================== selector de paleta =====================
 let paletaReg = null;
-const leerCol = reg => reg.startsWith('k_') ? S.kaiju[reg.slice(2)] : S.col[reg];
-const ponerCol = (reg, v) => { if (reg.startsWith('k_')) S.kaiju[reg.slice(2)] = v; else S.col[reg] = v; };
+const leerCol = reg => reg.startsWith('k_') ? KJ()[reg.slice(2)] : S.col[reg];
+const ponerCol = (reg, v) => { if (reg.startsWith('k_')) KJ()[reg.slice(2)] = v; else S.col[reg] = v; };
 function abrirPaleta(reg, nombre) {
   paletaReg = reg;
   document.getElementById('ptitulo').textContent = 'Elegir: ' + nombre;
   const g = document.getElementById('pgrid'); g.innerHTML = '';
-  const soloBrillo = reg === 'texto';
-  for (let h = 0; h < (soloBrillo ? 1 : 16); h++) {
-    const n = document.createElement('span'); n.textContent = soloBrillo ? 'brillo' : NOMBRE_TONO[h]; g.appendChild(n);
+  for (let h = 0; h < 16; h++) {
+    const n = document.createElement('span'); n.textContent = NOMBRE_TONO[h]; g.appendChild(n);
     for (let l = 0; l < 16; l += 2) {
       const v = (h << 4) | l, c = document.createElement('div');
       c.className = 'c' + ((leerCol(reg) & 0xFE) === v ? ' sel' : '');
-      c.style.background = PAL[soloBrillo ? (S.col.fondo & 0xF0) | l : v];
+      c.style.background = PAL[v];
       c.title = hex(v);
       c.addEventListener('mouseenter', () => document.getElementById('pinfo').textContent =
-        `${hex(v)} · ${soloBrillo ? 'brillo ' + l : NOMBRE_TONO[h] + ', brillo ' + l}`);
+        `${hex(v)} · ${NOMBRE_TONO[h] + ', brillo ' + l}`);
       c.addEventListener('click', () => {
         guardarUndo(); ponerCol(paletaReg, v); cerrarPaleta(); cambio();
       });
@@ -504,12 +485,21 @@ document.addEventListener('keydown', e => {
 
 // ===================== Kaiju: poses de 8 x 24 =====================
 const KPOSES = [['quieto_der', 'Quieto →'], ['camina_a', 'Camina A'], ['camina_b', 'Camina B'],
-  ['arriba_a', 'Espaldas A'], ['arriba_b', 'Espaldas B'], ['quieto_izq', '← Quieto'], ['sin_usar', 'Sin usar']];
+  ['arriba_a', 'Espaldas A'], ['arriba_b', 'Espaldas B'], ['quieto_izq', '← Quieto']];
 let kSel = 0, kPincel = 1;
-const colorKaiju = idx => idx === 0 ? null : PAL[idx === 1 ? S.kaiju.p0 : idx === 2 ? S.kaiju.p1 : (S.kaiju.p0 | S.kaiju.p1)];
-const getK = (i, x, y) => bit(S.kaiju.poses[i].p0[y], x) | (bit(S.kaiju.poses[i].p1[y], x) << 1);
+// jugador que se edita (0 = S.kaiju, 1 = S.kaiju2); la «Prueba» lo muestra
+let kJ = 0;
+const KJ = () => kJ ? S.kaiju2 : S.kaiju;
+document.querySelectorAll('[data-kj]').forEach(b => b.addEventListener('click', () => {
+  kJ = +b.dataset.kj;
+  document.querySelectorAll('[data-kj]').forEach(x => x.classList.toggle('on', x === b));
+  document.getElementById('kjtit').textContent = kJ ? 'Player 2 + Player 3' : 'Player 0 + Player 1';
+  refrescar();
+}));
+const colorKaiju = idx => idx === 0 ? null : PAL[idx === 1 ? KJ().p0 : idx === 2 ? KJ().p1 : (KJ().p0 | KJ().p1)];
+const getK = (i, x, y) => bit(KJ().poses[i].p0[y], x) | (bit(KJ().poses[i].p1[y], x) << 1);
 function setK(i, x, y, v) {
-  const m = 0x80 >> x, p = S.kaiju.poses[i];
+  const m = 0x80 >> x, p = KJ().poses[i];
   p.p0[y] = (v & 1) ? (p.p0[y] | m) : (p.p0[y] & ~m);
   p.p1[y] = (v & 2) ? (p.p1[y] | m) : (p.p1[y] & ~m);
 }
@@ -534,24 +524,26 @@ KPOSES.forEach(([, n], i) => {
 });
 ['kanim_c', 'kanim_a', 'kanim_d', 'kanim_i'].forEach(id => { const c = document.getElementById(id); c.width = 64; c.height = 96; });
 document.querySelectorAll('[data-kop]').forEach(b => b.addEventListener('click', () => {
-  guardarUndo(); const f = OPS[b.dataset.kop], p = S.kaiju.poses[kSel];
+  guardarUndo(); const f = OPS[b.dataset.kop], p = KJ().poses[kSel];
   p.p0 = f(p.p0); p.p1 = f(p.p1); cambio();
 }));
 document.getElementById('kcopiarbtn').addEventListener('click', () => {
   const dst = +document.getElementById('kcopiar').value; if (dst === kSel) return;
-  guardarUndo(); S.kaiju.poses[dst] = copia(S.kaiju.poses[kSel]); cambio();
+  guardarUndo(); KJ().poses[dst] = copia(KJ().poses[kSel]); cambio();
 });
 function pintarKaiju() {
   kMinis.forEach(({ d, cv }, i) => { d.classList.toggle('sel', i === kSel); dibujarKaiju(cv.getContext('2d'), i, 4); });
   const cont = document.getElementById('kslots'); cont.innerHTML = '';
-  [[0, 'Transparente', 'fondo'], [1, 'Cuerpo', 'Player 0 · KAIJU_PCOLR0', 'k_p0'],
-   [2, 'Contorno', 'Player 1 · KAIJU_PCOLR1', 'k_p1'], [3, 'Mezcla', 'P0 + P1 a la vez']].forEach(([v, nom, sub, reg]) => {
+  const pre = kJ ? ['Player 2 · KAIJU2_PCOLR0', 'Player 3 · KAIJU2_PCOLR1', 'P2 + P3 a la vez']
+                 : ['Player 0 · KAIJU_PCOLR0', 'Player 1 · KAIJU_PCOLR1', 'P0 + P1 a la vez'];
+  [[0, 'Transparente', 'fondo'], [1, 'Cuerpo', pre[0], 'k_p0'],
+   [2, 'Contorno', pre[1], 'k_p1'], [3, 'Mezcla', pre[2]]].forEach(([v, nom, sub, reg]) => {
     const d = document.createElement('div'); d.className = 'slot' + (kPincel === v ? ' sel' : '');
     if (reg) sub += ' · ' + hex(leerCol(reg));
-    if (v === 3) sub += ' · ' + hex(S.kaiju.p0 | S.kaiju.p1) + ' (calculado)';
+    if (v === 3) sub += ' · ' + hex(KJ().p0 | KJ().p1) + ' (calculado)';
     d.innerHTML = htmlSlot(colorKaiju(v), nom, sub, !!reg);
     d.addEventListener('click', e => {
-      if (e.target.tagName === 'BUTTON') { abrirPaleta(reg, 'Kaiju · ' + nom); return; }
+      if (e.target.tagName === 'BUTTON') { abrirPaleta(reg, (kJ ? 'Jugador 2' : 'Kaiju') + ' · ' + nom); return; }
       kPincel = v; if (herramienta === 'goma') herramienta = 'lapiz'; refrescar();
     });
     cont.appendChild(d);
@@ -587,7 +579,7 @@ const FUENTE = {   // glifos 8x8 de la fuente del Atari que usa el HUD
   8:[0,0x3C,0x66,0x3C,0x66,0x66,0x3C,0], 9:[0,0x3C,0x66,0x3E,0x06,0x0C,0x38,0]
 };
 const J = { px:120, py:120, ddx:4, ddy:0, tick:0, paso:0, pose:0, espejo:false, andando:0, rt:0,
-            activa:0, bx:0, by:0, bdx:0, bdy:0, gatillo:1, gatant:1, snd:0, vidas:3, puntos:0, imp:10 };
+            activa:0, bx:0, by:0, bdx:0, bdy:0, gatillo:1, gatant:1, snd:0, puntos:0, imp:10 };
 // los 57 caracteres de kaiju_fuente (códigos 2-58), en base64. OJO: copia de kaiju_graficos.asm.
 const FUENTE_K_B64 = '/wMMDDAwwP/Dw/Pzz8/Dw6qCoqKKioKqVUFRUUVFQVUCDw8OLw4PAKD8/Oz+rPwACy+6+/u6Lwvg+K7v76744CoiIiIiIioAAgICAgICAgAqAgIqICAqACoCAioCAioAIiIiKgICAgAqICAqAgIqACogICoiIioAKgICAgICAgAqIiIqIiIqACoiIioCAioAAAAAAAC/uvsAAAAAAP6u7/u6vwAAAAAA767+AAAAAAAAAAAAAL+6+AAAAAAA/q4v+Lq/AAAAAAAvrv4AAAAAAAAAAAA8DP8/AwMPDzw8PPA/DzMzwMAAAPP/8/Pw8DD8AAAAADwM/w8wMDw8PDw88D8PDwwMDAAA8////zw8DAwAAAAAPAwAADAAADwAPAD8PwAAAAwAAAAAAADzAAAwMICAgICAgICoqICAoICAgKiIiIiIiIiIoAAAACgAAAAAwMDw8Dw8PA8AAAAAPDD//M//z88PDww//PDMzAMDAAAMDDw8PDw8DwAAAAA8MP/wz////zw8MDD88PAwMDAAADC4uOy4uDAAAAAAAAsAugAAAAAA4ACuAPsALwAAAAAA7wD4AAAAAAAAAAAAAAAAAAAAAAAAAAAA';
 const KAIJU_PF = [0x8A, 0x34, 0xCC];   // KAIJU_COLOR0-2: bloques (píxeles 01, 10, 11)
@@ -722,7 +714,7 @@ function dibujarEscena() {
   if (mapaCambio) pintarNivel();
   c.imageSmoothingEnabled = false; c.drawImage(offNivel, 0, 0, 160, 192, 0, 0, 320, 192);
   // HUD: texto en la fila 0 (40 columnas de 8 px, fuente de la ROM)
-  c.fillStyle = PAL[colorTexto()];
+  c.fillStyle = PAL[0x0E];
   const txt = 'PUNTOS'.split('').map((ch, i) => [27 + i, ch]).concat(
     String(J.puntos).padStart(6, '0').split('').map((ch, i) => [34 + i, ch]));
   txt.forEach(([col, ch]) => {
@@ -734,9 +726,6 @@ function dibujarEscena() {
     if (S.bala[f >> 1][0]) P(J.bx, J.by + f, 2, PAL[S.col.bala]);
     if (S.bala[f >> 1][1]) P(J.bx + 2, J.by + f, 2, PAL[S.col.bala]);
   }
-  // vidas (Player 2 en 50, Player 3 en 58, líneas 32-37: cada fila en 2 líneas)
-  const maxcol = [0, 3, 8, 11][J.vidas];
-  for (let f = 0; f < 6; f++) for (let x = 0; x < maxcol; x++) if (S.vida[f >> 1][x]) P(50 + x, 32 + f, 1, PAL[S.col.vida]);
   // robot de Kaiju (P0 + P1 mezclados, 24 líneas; espejado al caminar a la izquierda)
   for (let y = 0; y < 24; y++) for (let x = 0; x < 8; x++) {
     const col = colorKaiju(getK(J.pose, J.espejo ? 7 - x : x, y));
@@ -755,11 +744,6 @@ function bucle(t) {
   requestAnimationFrame(bucle);
 }
 document.getElementById('nivelsel').addEventListener('change', e => { cargarNivel(+e.target.value); escena.focus(); });
-document.querySelectorAll('[data-vidas]').forEach(b => b.addEventListener('click', () => {
-  J.vidas = +b.dataset.vidas;
-  document.querySelectorAll('[data-vidas]').forEach(x => x.classList.toggle('on', x === b));
-}));
-
 // ===================== niveles: formato de niveles.asm (sin DOM) =====================
 // Un nivel: { nombre, ancho, alto (partes de la cuadrícula), parteIni, px, py (inicio del jugador),
 //   partes: [920 caracteres por parte (filas 1-23 de la pantalla x 40), en orden fila por fila],
@@ -1528,41 +1512,30 @@ document.getElementById('ndescartar').addEventListener('click', () => {
 
 // ===================== exportar =====================
 const bin8 = v => v.toString(2).padStart(8, '0');
-function vidaABytes() {
-  // 2 bytes por fila: P2 = cols 0-7, P3 = cols 8-10 en bits 7-5
-  const out = [];
-  for (let f = 0; f < 3; f++) {
-    let p2 = 0, p3 = 0;
-    for (let c = 0; c < 8; c++) if (S.vida[f][c]) p2 |= 0x80 >> c;
-    for (let c = 8; c < 11; c++) if (S.vida[f][c]) p3 |= 0x80 >> (c - 8);
-    out.push(p2, p3);
-  }
-  return out;
-}
 function exportar() {
   const L = [], C = S.col;
-  const vb = vidaABytes();
-  L.push('; ---------- Vidas HUD (Player 2+3, 11x3) ----------');
-  for (let f = 0; f < 3; f++) L.push((f === 0 ? 'vida_icono ' : '        ') + '.byte %' + bin8(vb[f * 2]) + ',%' + bin8(vb[f * 2 + 1]));
-  L.push('', '; ---------- Bala (missiles 0+1, 2x4): M1 = col 0 (bits 3-2), M0 = col 1 (bits 1-0) ----------');
+  L.push('; ---------- Bala (datos.asm, 2x4): col 0 = bits 3-2, col 1 = bits 1-0 ----------');
   for (let f = 0; f < 4; f++) {
     const v = (S.bala[f][0] ? 0x0C : 0) | (S.bala[f][1] ? 0x03 : 0);
     L.push((f === 0 ? 'bala_icono ' : '        ') + '.byte %' + bin8(v).slice(4));
   }
-  const gp = 0x31;   // el juego usa siempre la mezcla (robot de Kaiju)
-  L.push('', '; ---------- Colores (main.asm, rutina iniciar) ----------',
-    `        lda #${hex(C.vida)}`, '        sta PCOLR2      ; vidas del HUD', '        sta PCOLR3',
-    `        lda #${hex(gp)}        ; bit 4: missiles con COLOR3; bit 5: mezcla P0+P1 (robot)`,
-    '        sta GPRIOR',
-    `        lda #${hex(C.bala)}`, '        sta COLOR3      ; bala',
-    `        lda #${hex(C.fondo)}`, '        sta COLOR2      ; fondo', '        sta COLOR4      ; borde',
-    `        lda #${hex(C.texto)}`, '        sta COLOR1      ; brillo del texto del HUD');
+  L.push('', '; ---------- Colores (main.asm, rutina iniciar: reemplaza los lda de estos sta) ----------',
+    `        lda #${hex(C.bala)}`, '        sta COLOR3      ; bala y enemigos en inverso',
+    `        lda #${hex(C.fondo)}`, '        sta COLOR4      ; fondo y borde');
   L.push('', '; ==================== kaiju_graficos.asm ====================',
     `KAIJU_PCOLR0    = ${hex(S.kaiju.p0)}   ; cuerpo del jugador (P0)`,
     `KAIJU_PCOLR1    = ${hex(S.kaiju.p1)}   ; contorno del jugador (P1); mezcla P0|P1 = ${hex(S.kaiju.p0 | S.kaiju.p1)}`);
   KPOSES.forEach(([n, t], i) => ['p0', 'p1'].forEach(c => {
     L.push(`; ${t} (${c === 'p0' ? 'Player 0, cuerpo' : 'Player 1, contorno'})`);
     S.kaiju.poses[i][c].forEach((v, f) => L.push((f === 0 ? `kaiju_${n}_${c}` : '').padEnd(24) + '.byte %' + bin8(v)));
+  }));
+  const K2 = S.kaiju2;
+  L.push('', '; ==================== kaiju2_graficos.asm ====================',
+    `KAIJU2_PCOLR0   = ${hex(K2.p0)}   ; cuerpo del jugador 2 (P2)`,
+    `KAIJU2_PCOLR1   = ${hex(K2.p1)}   ; contorno del jugador 2 (P3); mezcla P2|P3 = ${hex(K2.p0 | K2.p1)}`);
+  KPOSES.forEach(([n, t], i) => ['p0', 'p1'].forEach(c => {
+    L.push(`; ${t} (${c === 'p0' ? 'Player 2, cuerpo' : 'Player 3, contorno'})`);
+    K2.poses[i][c].forEach((v, f) => L.push((f === 0 ? `kaiju2_${n}_${c}` : '').padEnd(24) + '.byte %' + bin8(v)));
   }));
   document.getElementById('exp').value = L.join('\n');
 }
@@ -1575,25 +1548,20 @@ document.getElementById('copiar').addEventListener('click', () => {
 
 // ===================== importar =====================
 function cargarTexto(texto, destino) {
-  // bytes: %........ (vidas) y %.... (bala). Cada bloque se busca por su
-  // etiqueta (vida_icono, bala_icono, kaiju_*), que pueden estar en
+  // bytes: %.... (bala) y %........ (poses). Cada bloque se busca por su
+  // etiqueta (bala_icono, kaiju_*, kaiju2_*), que pueden estar en
   // cualquier orden; sin etiquetas se usa el orden del export.
   let algo = false;
   const bytes = t => [...t.matchAll(/%([01]{1,8})/g)].map(m => parseInt(m[1], 2));
   const todos = bytes(texto);
   // el orden por posición solo vale para .byte pegados sin ninguna etiqueta
-  const conEtiquetas = /^(vida_icono|bala_icono|kaiju_\w+)\b/m.test(texto);
+  const conEtiquetas = /^(bala_icono|kaiju2?_\w+)\b/m.test(texto);
   const tomar = (etiqueta, desde, n) => {
     const i = texto.search(new RegExp('^' + etiqueta + '\\b', 'm'));
     const v = i >= 0 ? bytes(texto.slice(i)).slice(0, n) : (desde < 0 || conEtiquetas) ? [] : todos.slice(desde, desde + n);
     return v.length === n ? v : null;
   };
-  const vida = tomar('vida_icono', 0, 6), bala = tomar('bala_icono', 6, 4);
-  if (vida) {
-    for (let f = 0; f < 3; f++) for (let c = 0; c < 11; c++)
-      destino.vida[f][c] = c < 8 ? (vida[f * 2] >> (7 - c)) & 1 : (vida[f * 2 + 1] >> (15 - c)) & 1;
-    algo = true;
-  }
+  const bala = tomar('bala_icono', 0, 4);
   if (bala) {
     for (let f = 0; f < 4; f++) destino.bala[f] = [(bala[f] & 0x0C) ? 1 : 0, (bala[f] & 0x03) ? 1 : 0];
     algo = true;
@@ -1606,8 +1574,16 @@ function cargarTexto(texto, destino) {
   for (const [, r, v] of texto.matchAll(/^KAIJU_(PCOLR[01])\s*=\s*\$([0-9a-f]{2})/gim)) {
     destino.kaiju[r.toUpperCase() === 'PCOLR0' ? 'p0' : 'p1'] = parseInt(v, 16) & 0xFE; algo = true;
   }
+  // jugador 2 (kaiju2_graficos.asm)
+  KPOSES.forEach(([n], i) => {
+    const a = tomar(`kaiju2_${n}_p0`, -1, 24), b = tomar(`kaiju2_${n}_p1`, -1, 24);
+    if (a && b) { destino.kaiju2.poses[i] = { p0:a, p1:b }; algo = true; }
+  });
+  for (const [, r, v] of texto.matchAll(/^KAIJU2_(PCOLR[01])\s*=\s*\$([0-9a-f]{2})/gim)) {
+    destino.kaiju2[r.toUpperCase() === 'PCOLR0' ? 'p0' : 'p1'] = parseInt(v, 16) & 0xFE; algo = true;
+  }
   // colores: pares «lda #valor» … «sta REGISTRO»
-  const MAPA = { PCOLR2:'vida', COLOR3:'bala', COLOR2:'fondo', COLOR1:'texto' };
+  const MAPA = { COLOR3:'bala', COLOR4:'fondo' };
   let a = null;
   texto.split('\n').forEach(lin => {
     const l = lin.replace(/;.*/, '');
@@ -1624,7 +1600,7 @@ function cargarTexto(texto, destino) {
 document.getElementById('cargar').addEventListener('click', () => {
   const nuevo = copia(S);
   if (!cargarTexto(document.getElementById('imp').value, nuevo))
-    { alert('No encontré datos: pega los .byte de datos.asm (72 del robot, +6 vidas, +4 bala) o los colores de main.asm.'); return; }
+    { alert('No encontré datos: pega los .byte de datos.asm (bala_icono), las poses de kaiju_graficos.asm / kaiju2_graficos.asm o los colores de main.asm.'); return; }
   guardarUndo(); S = nuevo; cambio();
 });
 document.getElementById('abrir').addEventListener('click', () => document.getElementById('archivo').click());
@@ -1641,8 +1617,11 @@ let borrador = null;
 try { borrador = JSON.parse(localStorage.getItem('atari-juego-editor')); } catch (e) {}
 if (borrador && borrador.col) {   // los borradores viejos traen el robot original: se descarta
   delete borrador.body; delete borrador.det;
-  ['p0', 'p1', 'mezcla'].forEach(k => delete borrador.col[k]);
+  ['p0', 'p1', 'mezcla', 'vida', 'texto'].forEach(k => delete borrador.col[k]);
+  delete borrador.vida;   // ni el icono de vidas ni la pose «sin usar» existen ya
+  if (borrador.kaiju && borrador.kaiju.poses) borrador.kaiju.poses.length = 6;
   if (!borrador.kaiju) borrador.kaiju = copia(INICIAL.kaiju);
+  if (!borrador.kaiju2) borrador.kaiju2 = copia(INICIAL.kaiju2);
 }
 if (borrador && borrador.col && JSON.stringify(borrador) !== JSON.stringify(BASE)) {
   S = borrador; document.getElementById('aviso').style.display = 'block';
@@ -1652,10 +1631,10 @@ document.getElementById('descartar').addEventListener('click', () => {
 });
 // si el editor se sirve por http junto al repo, lee datos.asm y main.asm al abrir
 // (abriéndolo con doble clic el navegador lo bloquea y se usa INICIAL)
-Promise.all(['datos.asm', 'main.asm', 'kaiju_graficos.asm'].map(n => fetch(n).then(r => r.ok ? r.text() : '').catch(() => '')))
-  .then(([d, m, k]) => {
+Promise.all(['datos.asm', 'main.asm', 'kaiju_graficos.asm', 'kaiju2_graficos.asm'].map(n => fetch(n).then(r => r.ok ? r.text() : '').catch(() => '')))
+  .then(([d, m, k, k2]) => {
     const b = copia(BASE);
-    if (cargarTexto(d + '\n' + m + '\n' + k, b)) {
+    if (cargarTexto(d + '\n' + m + '\n' + k + '\n' + k2, b)) {
       BASE = b;
       if (document.getElementById('aviso').style.display !== 'block') { S = copia(BASE); refrescar(); exportar(); }
     }

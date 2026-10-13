@@ -1,10 +1,12 @@
-; bala.asm - disparo y bala (una a la vez, con los missiles 0+1: 2x4 editable)
+; bala.asm - disparo y bala del jugador activo (una a la vez: missile 0 para
+; J1 y 1 para J2, de ancho doble; dibujo 2x4 editable, bala_icono)
 
 actualizar_bala
         jsr borrabala
         lda gatillo     ; recordar el boton del frame anterior
         sta gatant
-        lda STRIG0      ; 0 = presionado
+        ldx jugador
+        lda STRIG0,x    ; 0 = presionado
         sta gatillo
         lda activa
         bne bal_mueve
@@ -65,8 +67,9 @@ bal_cel and #$7F
         bcc matar         ; borde o ladrillo
         cmp #$1C
         bcs bal_rob
-        lda #1            ; celula: fin de la etapa (se repite)
-        sta fin
+        ldx jugador       ; celula: fin de la etapa (se repite) y
+        inx               ; pierde energia el que disparo
+        stx fin
         jmp matar
 bal_rob cmp #$34
         bcc bal_gol
@@ -80,9 +83,11 @@ matar   lda #0
         rts
 nuevabala
         lda gatillo
-        bne finbala     ; 1 = boton sin presionar
+        bne nb_no       ; 1 = boton sin presionar
         lda gatant
-        beq finbala     ; ya estaba presionado: hay que soltarlo para volver a disparar
+        bne nb_si       ; si ya estaba presionado, hay que soltarlo para volver a disparar
+nb_no   rts
+nb_si
         lda px          ; la bala (4 px) sale del centro del jugador (8 px)
         clc
         adc #2
@@ -117,31 +122,48 @@ recta
         lda #SND_DISPARO
         jsr sonar
 pintabala
-        ldy by          ; 4 filas de bala_icono (datos.asm), cada una en 2 lineas
-        ldx #0          ; cada fila: M1 (izq) + M0 (der), en bloque
-bal_pb  lda bala_icono,x
-        sta PMG+$300,y  ; M0+M1 comparten estos bytes (bits 1-0 y 3-2)
-        sta PMG+$301,y
+        ldx jugador     ; 4 filas de bala_m (datos.asm), cada una en 2 lineas,
+        lda bits_m,x    ; solo en los bits del missile del jugador
+        sta tmp
+        eor #$FF
+        sta tmp2
+        ldy by
+        ldx #0          ; X = linea 0-7, fila X/2
+bal_pb  txa
+        lsr
+        sta tmp3
+        stx bpunto
+        ldx tmp3
+        lda bala_m,x
+        and tmp
+        sta tmp3
+        lda PMG+$300,y
+        and tmp2
+        ora tmp3
+        sta PMG+$300,y
         iny
-        iny
+        ldx bpunto
         inx
-        cpx #4
+        cpx #8
         bcc bal_pb
         lda bx
-        sta HPOSM1      ; M1 = columna izquierda
-        clc
-        adc #2
-        sta HPOSM0      ; M0 = columna derecha (2 px despues): bala de 4 px
-finbala rts
+        ldx jugador
+        sta HPOSM0,x    ; ancho doble: 4 HPOS
+        rts
 
-; borra la bala (8 lineas de los missiles 0+1) si esta activa
+; borra la bala (8 lineas de su missile) si esta activa
 borrabala
         lda activa
         beq nobala
+        ldx jugador
+        lda bits_m,x
+        eor #$FF
+        sta tmp2
         ldy by
-        lda #0
         ldx #8
-bal_bb  sta PMG+$300,y
+bal_bb  lda PMG+$300,y
+        and tmp2
+        sta PMG+$300,y
         iny
         dex
         bne bal_bb

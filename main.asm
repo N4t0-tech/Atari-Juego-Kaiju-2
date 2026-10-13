@@ -5,7 +5,7 @@
 ;
 ; Archivos del proyecto (todos en la misma carpeta):
 ;   hardware.asm  direcciones del Atari
-;   jugador.asm   movimiento, animacion y dibujo del jugador
+;   jugador.asm   movimiento, animacion y dibujo de los jugadores (cooperativo)
 ;   bala.asm      disparo y bala (missiles 0+1)
 ;   sonido.asm    efectos de sonido
 ;   hud.asm       HUD de Kaiju: energia, celulas que faltan y puntos
@@ -16,6 +16,7 @@
 ;   partes.asm    niveles de varias partes (pantallas)
 ;   etapas.asm    titulo, etapas y mensajes
 ;   datos.asm     variables y graficos del sprite
+;   kaiju2_graficos.asm  aspecto (poses y colores) del jugador 2
 ;   kaiju_*.asm   recursos de Kaiju (graficos, titulo); kaiju_titulo.asm
 ;                 ocupa $6000-$7EAF
 ;   niveles.asm   niveles: mapas, robots y celulas (editor-sprite.html), en
@@ -73,19 +74,19 @@ etapa_sig
 
 loop
         jsr esperar_paso
-        jsr mover_jugador
+        lda #0
+        jsr turno
+        lda #1
+        jsr turno
         jsr ver_salida          ; paso a otra parte del nivel
-        jsr animar_jugador
-        jsr dibujar_jugador
-        jsr actualizar_bala
         jsr actualizar_enemigos
         jsr animar_robots
         jsr actualizar_balas_enemigas
         jsr dibujar_celulas
-        jsr contactos
         jsr actualizar_sonido
         jsr actualizar_hud
-        lda energia
+        lda jug_datos+J_ENERGIA
+        ora jug_datos+JUG_TAM+J_ENERGIA
         beq perdio
         lda fin
         bne fallo
@@ -101,8 +102,15 @@ loop
         ldy #10
         jsr mensaje
         jmp partida
-fallo   ; se disparo a una celula: -1 de energia y se repite el nivel
-        dec energia
+fallo   ; se disparo a una celula: -1 de energia a quien disparo (fin = jugador
+        ; + 1) y se repite el nivel
+        ldx #0
+        cmp #1
+        beq fa_j1
+        ldx #JUG_TAM
+fa_j1   dec jug_datos+J_ENERGIA,x
+        lda jug_datos+J_ENERGIA
+        ora jug_datos+JUG_TAM+J_ENERGIA
         beq perdio
         lda #<kaiju_txt_tryagain
         ldx #>kaiju_txt_tryagain
@@ -114,6 +122,32 @@ perdio  lda #<kaiju_txt_gameover
         ldy #15
         jsr mensaje
         jmp partida
+
+; un paso del jugador A (si le queda energia): moverse, animarse, disparar,
+; recoger celulas y recibir golpes. Sin energia no se ve ni dispara, y si
+; nunca entro a la partida puede entrar ahora (unirse)
+turno   jsr cargar_jugador
+        lda energia
+        beq tu_fuera
+        jsr mover_jugador
+        jsr animar_jugador
+        jsr dibujar_jugador
+        jsr actualizar_bala
+        jsr contactos
+        jsr balas_al_jugador
+        jmp guardar_jugador
+tu_fuera
+        jsr borrabala
+        lda #0
+        sta activa
+        jsr hpos_jugador
+        ldx jugador     ; si todavia no jugo, entra al apretar su boton (el
+        lda unido_j,x   ; que ya jugo y se quedo sin energia sigue fuera)
+        bne tu_g
+        lda STRIG0,x
+        bne tu_g
+        jsr unirse
+tu_g    jmp guardar_jugador
 
 ; espera FRAMES_PASO frames: un paso del juego. El original (cc65) no llegaba
 ; a dar una vuelta por frame, asi que todo iba a la mitad de velocidad
@@ -152,11 +186,32 @@ iniciar
         sta COLOR3
         lda #0          ; fondo negro (COLOR4: fondo y borde en ANTIC 4/E)
         sta COLOR4
-        sta HPOSP2      ; P2 y P3: balas de los tiradores
+        sta HPOSP2      ; P2 y P3: J2
         sta HPOSP3
-        lda #$44
-        sta PCOLR2      ; color de las balas enemigas
+        lda #KAIJU2_PCOLR0      ; cuerpo de J2 (kaiju2_graficos.asm)
+        sta PCOLR2
+        lda #KAIJU2_PCOLR1      ; contorno de J2
         sta PCOLR3
+        lda #$55        ; los 4 missiles de ancho doble (balas de 4 HPOS)
+        sta SIZEM
+        ldx #3          ; bala_m: bala_icono para un missile de ancho doble
+in_bm   lda #0
+        sta tmp
+        lda bala_icono,x
+        and #%1000      ; columna izquierda
+        beq in_b1
+        lda #%10101010
+        sta tmp
+in_b1   lda bala_icono,x
+        and #%0001      ; columna derecha
+        beq in_b2
+        lda tmp
+        ora #%01010101
+        sta tmp
+in_b2   lda tmp
+        sta bala_m,x
+        dex
+        bpl in_bm
         rts
 
         icl "jugador.asm"
@@ -172,6 +227,7 @@ iniciar
         icl "datos.asm"
 
         icl "kaiju_graficos.asm"
+        icl "kaiju2_graficos.asm"      ; aspecto del jugador 2
 
         ; RAM para las partes del nivel descomprimidas (no va en el .xex)
 MAPAS   = *

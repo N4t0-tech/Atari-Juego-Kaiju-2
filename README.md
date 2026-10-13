@@ -55,9 +55,10 @@ Si clonás con git, evitá que convierta los finales de línea del binario `kaij
 
 | Control              | Acción                                   |
 |----------------------|------------------------------------------|
-| Joystick 1           | Mover (8 direcciones)                    |
+| Joystick 1 / 2       | Mover (8 direcciones) a J1 / J2          |
 | Botón                | Disparar en la dirección en que mirás    |
-| Botón (en el título) | Empezar la partida                       |
+| Botón (en el título) | Empezar la partida con ese joystick      |
+| Botón del otro joystick (jugando) | Entrar a la partida (cooperativo) |
 
 ## Reglas
 
@@ -74,6 +75,12 @@ Si clonás con git, evitá que convierta los finales de línea del binario `kaij
 - **Bloques azules**: se rompen a tiros (+1). El borde verde también lastima.
 - **Energía**: empezás con 5; después de cada golpe hay un rato de invulnerabilidad. Con 0 es GAME OVER.
 - Superando el último nivel aparece "YOU ARE SUPER PLAYER".
+- **Cooperativo**: se puede jugar solo o de a dos en cualquier nivel. El otro jugador entra cuando quiera
+  apretando el botón de su joystick: aparece al lado de su compañero con 5 de energía. J2 es el robot de otro color. Cada uno tiene su energía y sus puntos (J1 en la fila de
+  arriba, J2 en la de abajo); las células son de los dos. Si uno le dispara a una célula, pierde energía él
+  y se repite el nivel. Para pasar a otra parte del nivel tienen que estar los dos en el hueco, empujando
+  hacia el mismo lado. Quien se queda sin energía sale de la partida (y ya no puede volver a entrar); sin ninguno, GAME OVER. Los robots
+  van por el jugador más cercano.
 
 ## Estructura
 
@@ -81,10 +88,10 @@ Si clonás con git, evitá que convierta los finales de línea del binario `kaij
 |------------------------|----------------------------------------------------------------|
 | `main.asm`             | Punto de entrada, bucle principal, incluye todo lo demás       |
 | `hardware.asm`         | Registros del Atari y mapa de memoria                          |
-| `jugador.asm`          | Movimiento, animación y dibujo del jugador                     |
+| `jugador.asm`          | Movimiento, animación y dibujo de los jugadores (cooperativo)  |
 | `bala.asm`             | Disparo                                                        |
 | `enemigos.asm`         | Robots: patrulla, persecución, contactos                       |
-| `balaenemiga.asm`      | Tiradores: sus disparos (players 2 y 3)                        |
+| `balaenemiga.asm`      | Tiradores: sus disparos (missiles 2 y 3)                       |
 | `celulas.asm`          | Células                                                        |
 | `partes.asm`           | Niveles de varias partes (pantallas)                           |
 | `nivel.asm`            | Pantallas (juego, mensajes, título) y choques con los bloques  |
@@ -94,6 +101,7 @@ Si clonás con git, evitá que convierta los finales de línea del binario `kaij
 | `sonido.asm`           | Efectos de sonido                                              |
 | `datos.asm`            | Variables y tablas                                             |
 | `kaiju_*.asm`, `.mic`  | Recursos del Kaiju original (gráficos, fuente, textos, título) |
+| `kaiju2_graficos.asm`  | Aspecto del jugador 2 (poses y colores); lo genera el editor   |
 | `editor-sprite.html`   | Editor de sprites, colores y niveles (se abre en el navegador) |
 | `AGENTS.md`            | Documentación técnica detallada (memoria, reglas, detalles)    |
 

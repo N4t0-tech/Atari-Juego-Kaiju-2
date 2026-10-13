@@ -176,6 +176,72 @@ centro_jugador
         sta pcy
         rts
 
+; casilla del centro de cada jugador (pcx_j, pcy_j) y su energia (vivo_j),
+; de sus copias en jug_datos
+centros_jugadores
+        ldy #1
+        ldx #JUG_TAM
+cjs     lda jug_datos+J_ENERGIA,x
+        sta vivo_j,y
+        lda jug_datos+J_PX,x
+        clc
+        adc #4-48
+        lsr
+        lsr
+        sta pcx_j,y
+        lda jug_datos+J_PY,x
+        clc
+        adc #12-32
+        lsr
+        lsr
+        lsr
+        sta pcy_j,y
+        ldx #0
+        dey
+        bpl cjs
+        rts
+
+; el jugador al que va el robot X: el vivo mas cercano (J1 si empatan o si
+; no queda ninguno). Deja su casilla en pcx/pcy y su posicion en tpx/tpy.
+; Conserva X.
+objetivo
+        ldy #0
+        lda vivo_j+1
+        beq ob_pon      ; J2 fuera (o partida de 1 jugador)
+        lda vivo_j
+        beq ob_j2
+        lda pcx_j+1     ; los dos vivos: distancia a J2...
+        sta pcx
+        lda pcy_j+1
+        sta pcy
+        jsr distancia
+        sta tmp2
+        lda pcx_j
+        sta pcx
+        lda pcy_j
+        sta pcy
+        jsr distancia   ; ... y a J1
+        cmp tmp2
+        bcc ob_pon
+        beq ob_pon
+ob_j2   ldy #1
+ob_pon  lda pcx_j,y
+        sta pcx
+        lda pcy_j,y
+        sta pcy
+        lda #0
+        cpy #0
+        beq ob_pos
+        lda #JUG_TAM
+ob_pos  stx tmp2
+        tax
+        lda jug_datos+J_PX,x
+        sta tpx
+        lda jug_datos+J_PY,x
+        sta tpy
+        ldx tmp2
+        rts
+
 ; cada 11 frames: decidir la direccion de cada robot, moverlo y redibujarlo
 actualizar_enemigos
         dec cnt11
@@ -183,7 +249,7 @@ actualizar_enemigos
         rts
 ae_ya   lda #11
         sta cnt11
-        jsr centro_jugador
+        jsr centros_jugadores
         ldx #0
 ae_rob  cpx nrob
         bcc ae_uno
@@ -197,22 +263,27 @@ ae_uno  lda rob_parte,x  ; solo los de la parte en pantalla
 ae_salta
         jmp ae_sig
 ae_vivo
-        ; zona de vigilancia: si el jugador esta dentro, a perseguirlo
-        lda pcx
+        ; zona de vigilancia: si algun jugador esta dentro, a perseguirlo
+        ldy #1
+ae_zona lda vivo_j,y
+        beq ae_zs
+        lda pcx_j,y
         cmp rob_zx0,x
-        bcc ae_nozona
+        bcc ae_zs
         lda rob_zx1,x
-        cmp pcx
-        bcc ae_nozona
-        lda pcy
+        cmp pcx_j,y
+        bcc ae_zs
+        lda pcy_j,y
         cmp rob_zy0,x
-        bcc ae_nozona
+        bcc ae_zs
         lda rob_zy1,x
-        cmp pcy
-        bcc ae_nozona
+        cmp pcy_j,y
+        bcc ae_zs
         lda #2
         sta rob_estado,x
-ae_nozona
+ae_zs   dey
+        bpl ae_zona
+        jsr objetivo    ; el jugador al que va (pcx/pcy, tpx/tpy)
         lda rob_estado,x
         cmp #2
         bne ae_patr
@@ -421,8 +492,8 @@ ax_sig  inx
         jmp ax_rob
 ax_fin  rts
 
-; cada frame: celulas que toca el jugador (se recogen) y enemigos que lo
-; tocan (le quitan energia, con 50 pasos de invulnerabilidad)
+; cada paso, para el jugador activo: celulas que toca (se recogen) y enemigos
+; que lo tocan (le quitan energia, con 50 pasos de invulnerabilidad)
 contactos
         lda invul
         beq ct_cel
@@ -461,7 +532,7 @@ ct_rs   inx
         jmp ct_r2
 ct_fin  rts
 
-; el jugador recibe un golpe: -1 de energia si no esta invulnerable.
+; el jugador activo recibe un golpe: -1 de energia si no esta invulnerable.
 ; Conserva X e Y.
 herir   lda invul
         bne he_fin

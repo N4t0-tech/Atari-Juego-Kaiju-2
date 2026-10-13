@@ -1,23 +1,36 @@
 ; etapas.asm - flujo de la partida: titulo, «LEVEL n», los NUM_NIVELES
 ; niveles de niveles.asm (hechos con editor-sprite.html) y los mensajes de fin
 ;
-; Se supera un nivel al recoger todas sus celulas. Disparar a una celula
-; cuesta 1 de energia y repite el nivel («TRY AGAIN»); sin energia, «GAME
-; OVER». Tras el ultimo, «YOU ARE SUPER PLAYER». La energia y los puntos pasan
-; de un nivel al siguiente.
+; Se supera un nivel al recoger todas sus celulas (compartidas en el
+; cooperativo). Disparar a una celula le cuesta 1 de energia a quien disparo
+; y repite el nivel («TRY AGAIN»); un jugador sin energia queda fuera y sin
+; ninguno, «GAME OVER». Tras el ultimo, «YOU ARE SUPER PLAYER». La energia y
+; los puntos (de cada jugador) pasan de un nivel al siguiente.
 
 nueva_partida
         lda etapa_ini   ; 0 salvo que se elija otra con el selector DEBUG
         sta etapa
+        ldx #JUG_TAM*2-1        ; puntos a 0 y todo lo demas tambien
         lda #0
-        sta puntos
-        sta puntos+1
-        sta puntos+2
-        lda #5
-        sta energia
+np_b    sta jug_datos,x
+        dex
+        bpl np_b
+        sta unido_j
+        sta unido_j+1
+        ldy tmp3        ; el que apreto el boton en el titulo
+        lda #1
+        sta unido_j,y
+        ldx #0
+        tya
+        beq np_e
+        ldx #JUG_TAM
+np_e    lda #5
+        sta jug_datos+J_ENERGIA,x
         rts
 
-; imagen de titulo hasta que se aprieta el boton (hay que soltarlo antes)
+; imagen de titulo hasta que se aprieta un boton (hay que soltarlos antes):
+; empieza el jugador de ese joystick (tmp3 = 0 o 1); el otro puede entrar
+; despues, en cualquier momento, apretando el suyo
 titulo
         jsr modo_titulo
         .if DEBUG
@@ -29,14 +42,20 @@ tit_suelta
         jsr dbg_selector
         .endif
         lda STRIG0
+        and STRIG1
         beq tit_suelta
 tit_espera
         jsr esperar_frame
         .if DEBUG
         jsr dbg_selector
         .endif
+        ldx #0
         lda STRIG0
+        beq tit_ok
+        inx
+        lda STRIG1
         bne tit_espera
+tit_ok  stx tmp3
         rts
 
         .if DEBUG
@@ -153,23 +172,97 @@ esperar_n
         bne esperar_n
         rts
 
-; arma la etapa «etapa»: mapa, robots, celulas, HUD y jugador
+; arma la etapa «etapa»: mapa, robots, celulas, HUD y jugadores (J2 al lado
+; de J1 si cabe sin chocar; el que no esta jugando igual queda ahi, listo
+; para unirse)
 cargar_etapa
         jsr limpiar_pmg
         jsr limpiar_pantalla
-        jsr dibujar_nivel
+        lda #0
+        jsr cargar_jugador
+        jsr dibujar_nivel       ; parte y px/py (de J1)
         jsr cargar_robots       ; sigue leyendo el nivel donde quedo ptr
         lda #0
         sta fin
-        sta invul
         sta cuenta
-        sta ddy
-        lda #4          ; mirando a la derecha
-        sta ddx
+        sta aviso
+        sta caja_on     ; (la pantalla ya esta limpia)
+        lda #PUERTA_PASOS
+        sta puerta_t
         lda #11
         sta cnt11
         jsr mostrar_parte       ; la parte inicial, con sus celulas y robots
+        jsr preparar_jugador
+        jsr guardar_jugador
+        lda px
+        sta tpx
+        lda py
+        sta tpy
+        lda #1
+        jsr cargar_jugador
+        lda tpy
+        sta py
+        jsr junto_a
+        jsr preparar_jugador
+        jsr guardar_jugador
         jsr dibujar_hud
-        jsr modo_juego
-        jsr animar_jugador
-        jmp dibujar_jugador
+        jmp modo_juego
+
+; el jugador activo entra a la partida (apreto su boton en medio del nivel):
+; 5 de energia, puntos a 0, al lado del otro e invulnerable un rato
+unirse
+        ldx jugador
+        lda #1
+        sta unido_j,x
+        lda #5
+        sta energia
+        lda #0
+        sta puntos
+        sta puntos+1
+        sta puntos+2
+        sta gatillo     ; hay que soltar el boton para disparar
+        sta gatant
+        jsr preparar_jugador
+        ldx #JUG_TAM    ; copia del otro jugador
+        lda jugador
+        beq un_o
+        ldx #0
+un_o    lda jug_datos+J_PX,x
+        sta tpx
+        lda jug_datos+J_PY,x
+        sta py
+        jsr junto_a
+        lda #50         ; un rato invulnerable (parpadea), como tras un golpe
+        sta invul
+        lda #1
+        sta hud_dirty
+        lda #SND_RECOGER
+        jmp sonar
+
+; px = tpx + 10 (a la derecha del otro jugador) si cabe y no choca; si no,
+; tpx (encima). py ya tiene que estar puesto
+junto_a lda tpx
+        sta px
+        cmp #191
+        bcs ja_fin
+        adc #10
+        sta px
+        jsr choca
+        bcc ja_fin
+        lda tpx
+        sta px
+ja_fin  rts
+
+; deja al jugador activo listo para empezar la etapa
+preparar_jugador
+        lda #0
+        sta invul
+        sta ddy
+        sta activa
+        sta salida
+        sta andando
+        lda #4          ; mirando a la derecha
+        sta ddx
+        lda #IMPULSO
+        sta cimpulso
+        rts

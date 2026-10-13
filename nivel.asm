@@ -1,7 +1,7 @@
 ; nivel.asm - pantallas (juego, mensajes, titulo), nivel y choques
 ;
-; Pantalla de juego (DLIST): 24 filas de ANTIC 4 (caracteres multicolor) con
-; la fuente de Kaiju; la fila 0 es el HUD. Como en el original no hay DLI.
+; Pantalla de juego (DLIST): 25 filas de ANTIC 4 (caracteres multicolor) con
+; la fuente de Kaiju; la fila 0 es el HUD de J1 y la 24 (HUD2) el de J2. Como en el original no hay DLI.
 ; Coordenadas: la fila r ocupa las lineas 32+8r a 39+8r y la columna c los
 ; HPOS 48+4c a 51+4c (un caracter de ANTIC 4 = 4 x 8).
 ; Titulo (DLIST_T): imagen de Kaiju en ANTIC E (196 lineas, en dos bloques de
@@ -30,6 +30,11 @@ fnt_k2  lda kaiju_fuente+$100,x  ; los 200 restantes (57 x 8 = 456)
         inx
         cpx #200
         bne fnt_k2
+        ldx #10*8-1     ; la caja del aviso de la puerta
+fnt_b   lda fuente_caja,x
+        sta FUENTE+CAJA*8,x
+        dex
+        bpl fnt_b
         ldx #63         ; los 16 del tirador: $40-$47 y $50-$57, y los 8
 fnt_t   lda fuente_tirador,x    ; de la explosion: $48-$4F
         sta FUENTE+TIROCLASE*8,x
@@ -160,10 +165,12 @@ modo_titulo
         sta COLOR2
         rts
 
-; borra los 2 KB de los sprites (jugador, bala, todo)
+; borra los 2 KB de los sprites (jugadores, balas, todo)
 limpiar_pmg
         lda #0
         sta activa
+        sta jug_datos+J_ACTIVA
+        sta jug_datos+JUG_TAM+J_ACTIVA
         sta eb_activa
         sta eb_activa+1
         tax
@@ -179,9 +186,13 @@ lpm     sta PMG,x
         bne lpm
         rts
 
-; borra las 24 filas de la pantalla (960 bytes)
+; borra las 24 filas de la pantalla (960 bytes) y el HUD de J2
 limpiar_pantalla
         lda #0
+        ldx #39
+lph2    sta HUD2,x
+        dex
+        bpl lph2
         tax
 lpa     sta PANTALLA,x
         sta PANTALLA+$100,x
@@ -322,7 +333,11 @@ ch_fila ldx fil0
         ldy col0
 ch_col  lda (ptr2),y
         beq ch_sig
-        jsr solido
+        cmp #CAJA       ; la caja del aviso de la puerta se atraviesa
+        bcc ch_sol
+        cmp #CAJA+10
+        bcc ch_sig
+ch_sol  jsr solido
         bcc ch_sig      ; celula o enemigo
         lda (ptr2),y
         sec

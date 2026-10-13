@@ -13,16 +13,11 @@
 ; --- colores (registros sombra del OS) ---
 KAIJU_PCOLR0    = $B8   ; cuerpo del jugador (P0)
 KAIJU_PCOLR1    = $3A   ; contorno del jugador (P1); mezcla P0|P1 = $BA
-KAIJU_PCOLR2    = $EC   ; disparo (P2)
-KAIJU_PCOLR3    = $60   ; P3
-KAIJU_GPRIOR    = $31   ; bit 5 mezcla de colores, bit 4 missiles con COLOR3
 KAIJU_COLOR0    = $8A   ; bloques: pixel 01
 KAIJU_COLOR1    = $34   ; bloques: pixel 10
 KAIJU_COLOR2    = $CC   ; bloques: pixel 11
-KAIJU_COLOR3    = $26   ; caracteres inversos y missiles
-KAIJU_COLOR4    = $00   ; fondo
 
-; --- jugador: 7 poses x 2 players x 24 filas ---
+; --- jugador: 6 poses x 2 players x 24 filas ---
 ; quieto mirando a la derecha (y mirando abajo) (Player 0, cuerpo)
 kaiju_quieto_der_p0     .byte %00000000
                         .byte %00000000
@@ -323,67 +318,6 @@ kaiju_quieto_izq_p1     .byte %00000000
                         .byte %01101100
                         .byte %00000000
                         .byte %00000000
-; pose que el juego no usa (variante de quieto) (Player 0, cuerpo)
-kaiju_sin_usar_p0       .byte %00000000
-                        .byte %00000000
-                        .byte %00111100
-                        .byte %00111100
-                        .byte %00101000
-                        .byte %00111100
-                        .byte %00100000
-                        .byte %00111100
-                        .byte %00011000
-                        .byte %01111110
-                        .byte %10100101
-                        .byte %10100101
-                        .byte %10100101
-                        .byte %10100101
-                        .byte %00111100
-                        .byte %00111100
-                        .byte %00111100
-                        .byte %00100100
-                        .byte %00100100
-                        .byte %00100100
-                        .byte %00000000
-                        .byte %00000000
-                        .byte %00000000
-                        .byte %00000000
-; pose que el juego no usa (variante de quieto) (Player 1, contorno)
-kaiju_sin_usar_p1       .byte %00000000
-                        .byte %00011000
-                        .byte %00111100
-                        .byte %00111100
-                        .byte %00101000
-                        .byte %01111110
-                        .byte %00100000
-                        .byte %00111100
-                        .byte %00011000
-                        .byte %01111110
-                        .byte %10100101
-                        .byte %10100101
-                        .byte %10100101
-                        .byte %10100101
-                        .byte %10111101
-                        .byte %00000000
-                        .byte %00111100
-                        .byte %00100100
-                        .byte %00100100
-                        .byte %00100100
-                        .byte %00110110
-                        .byte %00000000
-                        .byte %00000000
-                        .byte %00000000
-
-; --- disparo (Player 2, 24 filas). Vertical: kaiju_disparo_v; horizontal: kaiju_disparo_h ---
-kaiju_disparo_v         .byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$3C,$3C,$3C   ; disparo vertical (arriba/abajo/diagonales)
-                        .byte $3C,$3C,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-kaiju_disparo_v2        .byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$3C,$7E,$3C   ; variante sin usar
-                        .byte $00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-kaiju_disparo_h         .byte $00,$00,$00,$00,$00,$00,$00,$1C,$1C,$1C,$1C,$1C   ; disparo horizontal (izquierda/derecha)
-                        .byte $1C,$1C,$1C,$00,$00,$00,$00,$00,$00,$00,$00,$00
-kaiju_disparo_h2        .byte $00,$00,$00,$00,$00,$00,$00,$00,$08,$08,$08,$08   ; variante sin usar
-                        .byte $08,$08,$00,$00,$00,$00,$00,$00,$00,$00,$00,$00
-
 ; --- fuente: 57 caracteres propios (codigos $02-$3A), 8 bytes cada uno.
 ; El juego copia la fuente de la ROM ($E000) y encima pone estos a partir
 ; del caracter 2 (CHBAS*256 + $10). Bloques de los niveles = caracteres 2-5.

@@ -1,38 +1,58 @@
 ; datos.asm - variables y graficos del sprite
 
+; --- jugador activo (cooperativo: jugador.asm cargar_jugador/guardar_jugador
+; copian este bloque desde/hacia jug_datos + jugador*JUG_TAM). Todo lo que
+; es de un solo jugador va entre JUG y JUG_FIN ---
+JUG
 px      .byte 120
 py      .byte 120       ; en lineas (PMG a 1 linea)
-FRAMES_PASO = 2         ; frames por paso del juego (1 = 50/60 pasos por segundo)
-npaso   .byte 0         ; contador de pasos del juego (freno en diagonal)
-IMPULSO = 10            ; el jugador avanza el doble 1 de cada IMPULSO pasos (+10%)
-cimpulso .byte IMPULSO  ; pasos hasta el proximo impulso
+oldx    .byte 0         ; posicion antes de mover (para deshacer el movimiento)
+oldy    .byte 0
+ddx     .byte 4         ; hacia donde mira: -4, 0 o 4 (empieza mirando a la derecha)
+ddy     .byte 0
 tick    .byte 0         ; frames desde el ultimo cambio de paso
 paso    .byte 0         ; paso de la caminata: 0 = A, 1 = B
 pose    .byte 0         ; pose a dibujar (POSE_*)
 espejo  .byte 0         ; $80 = dibujar la pose espejada
-filas   .byte 0         ; auxiliar (sonido.asm)
-oldx    .byte 0         ; posicion antes de mover (para frenar la diagonal)
-oldy    .byte 0
-ddx     .byte 4         ; hacia donde mira: -4, 0 o 4 (empieza mirando a la derecha)
-ddy     .byte 0
-sndtim  .byte 0         ; frames que le quedan al sonido de disparo
+andando .byte 0         ; 1 = el jugador se movio este frame (anima la caminata)
+cimpulso .byte IMPULSO  ; pasos hasta el proximo impulso
+gatillo .byte 1         ; STRIG de este frame (0 = presionado)
+gatant  .byte 1         ; STRIG del frame anterior (para disparar solo al apretar)
 activa  .byte 0         ; 1 = hay una bala en vuelo
 bx      .byte 0         ; posicion de la bala
 by      .byte 0
 bdx     .byte 0         ; velocidad de la bala
 bdy     .byte 0
+puntos  .byte 0,0,0     ; puntuacion BCD, 6 digitos (alto, medio, bajo)
+energia .byte 5         ; iconos de energia; 0 = fuera de la partida
+invul   .byte 0         ; pasos de invulnerabilidad que quedan tras un golpe
+salida  .byte 0         ; SAL_*: por donde quiso salir el jugador este paso
+JUG_FIN
+JUG_TAM = JUG_FIN - JUG
+jugador .byte 0         ; jugador activo: 0 = J1, 1 = J2 (indice de STICK0, HPOSM0...)
+unido_j .byte 0,0       ; 1 = el jugador entro en esta partida (al apretar su
+                        ; boton: en el titulo o en medio de un nivel)
+jug_datos :JUG_TAM*2 .byte 0    ; copia de JUG de cada jugador
+; un campo de la copia del jugador X (0 o JUG_TAM): jug_datos+J_xx,x
+J_PX    = px - JUG
+J_PY    = py - JUG
+J_PUNTOS = puntos - JUG
+J_ENERGIA = energia - JUG
+J_SALIDA = salida - JUG
+J_ACTIVA = activa - JUG
+
+FRAMES_PASO = 2         ; frames por paso del juego (1 = 50/60 pasos por segundo)
+npaso   .byte 0         ; contador de pasos del juego (freno en diagonal)
+IMPULSO = 10            ; el jugador avanza el doble 1 de cada IMPULSO pasos (+10%)
+sndtim  .byte 0         ; frames que le quedan al sonido de disparo
 tmp     .byte 0         ; auxiliar para el dibujo espejado
-tmp2    .byte 0         ; auxiliar (mascaras de las vidas)
+tmp2    .byte 0         ; auxiliar (mascaras de los missiles, distancias)
 mvx     .byte 0         ; movimiento pedido este frame: -1, 0, 1
 mvy     .byte 0         ; -2, 0, 2 (lineas)
 fil0    .byte 0         ; caja del robot en filas/columnas (choca)
 fil1    .byte 0
 col0    .byte 0
 col1    .byte 0
-andando .byte 0         ; 1 = el jugador se movio este frame (anima la caminata)
-gatillo .byte 1         ; STRIG0 de este frame (0 = presionado)
-gatant  .byte 1         ; STRIG0 del frame anterior (para disparar solo al apretar)
-puntos  .byte 0,0,0     ; puntuacion BCD, 6 digitos (alto, medio, bajo)
 
 ; --- partida (etapas.asm) ---
 etapa   .byte 0         ; nivel en juego: 0..NUM_NIVELES-1 (niveles.asm), se ve como LEVEL etapa+1
@@ -43,9 +63,7 @@ dbg_stick .byte $0F     ; STICK0 anterior del selector (para moverse al apretar)
 txt_debug dta d'   START LEVEL 1    '
 TXT_DEBUG_N = 15        ; posicion del numero de nivel (1 o 2 digitos)
         .endif
-energia .byte 5         ; iconos de energia; 0 = fin de la partida
-invul   .byte 0         ; frames de invulnerabilidad que quedan tras un golpe
-fin     .byte 0         ; 1 = se disparo a una celula: se repite el nivel
+fin     .byte 0         ; jugador + 1 que disparo a una celula: se repite el nivel
 cuenta  .byte 0         ; 0-11: animacion de las celulas (cambian a los 0 y 6)
 cnt11   .byte 11        ; frames hasta la proxima actualizacion de los enemigos
 sndtipo .byte 0         ; efecto que suena (SND_*)
@@ -55,8 +73,13 @@ bpunto  .byte 0         ; esquina de la bala que se esta probando (3..0)
 brompe  .byte 0         ; 1 = la bala rompio algun bloque azul en este frame
 bala_px .byte 0,3,0,3   ; esquinas de la bala (4 px x 8 lineas) desde bx, by
 bala_py .byte 0,0,7,7
-pcx     .byte 0         ; casilla del centro del jugador (enemigos.asm)
+pcx     .byte 0         ; casilla del centro del jugador objetivo (enemigos.asm)
 pcy     .byte 0
+tpx     .byte 0         ; px/py del jugador objetivo (apuntar)
+tpy     .byte 0
+pcx_j   .byte 0,0       ; casilla del centro de cada jugador
+pcy_j   .byte 0,0
+vivo_j  .byte 0,0       ; energia de cada jugador (0 = fuera)
 tmp3    .byte 0         ; auxiliares
 ox_r    .byte 0
 oy_r    .byte 0
@@ -69,7 +92,33 @@ pfil    .byte 0
 pancho  .byte 1         ; partes de ancho y de alto del nivel
 palto   .byte 1
 npartes .byte 1
-salida  .byte 0         ; SAL_*: por donde quiso salir el jugador este paso
+aviso   .byte 0         ; cooperativo: jugadores en la puerta (0, 1 o 2)
+puerta_t .byte 0        ; pasos que faltan con los dos en la puerta para cambiar
+PUERTA_PASOS = 15       ; medio segundo mostrando «2/2» antes de cambiar de parte
+; caja del aviso de la puerta (partes.asm): 5 x 3 caracteres en el mapa, junto
+; al hueco, con «1/2» o «2/2». Solo tapa casillas vacias; los jugadores la
+; atraviesan (choca) y para robots y balas es un bloque
+CAJA    = $58           ; $58-$61, libres en los niveles (fuente_caja)
+caja_on .byte 0         ; 1 = la caja esta en pantalla
+caja_x  .byte 0         ; su casilla de arriba a la izquierda
+caja_y  .byte 0
+caja_lado .byte 0       ; SAL_* de la puerta y jugador (0 o JUG_TAM) junto al
+caja_jug .byte 0        ; que se pone
+caja_fondo :15 .byte 0  ; lo que habia debajo (solo se dibuja sobre vacio)
+caja_car .byte CAJA,CAJA+1,CAJA+1,CAJA+1,CAJA+2
+        .byte CAJA+3,CAJA+7,CAJA+9,CAJA+8,CAJA+4      ; el 1 cambia por 2
+        .byte CAJA+5,CAJA+1,CAJA+1,CAJA+1,CAJA+6
+; borde en pixel 11 (COLOR2), digitos y barra en pixel 10 como los del HUD
+fuente_caja .byte $00,$00,$00,$0F,$0C,$0C,$0C,$0C       ; $58 esquina arr-izq
+        .byte $00,$00,$00,$FF,$00,$00,$00,$00   ; $59 horizontal
+        .byte $00,$00,$00,$F0,$30,$30,$30,$30   ; $5A esquina arr-der
+        .byte $0C,$0C,$0C,$0C,$0C,$0C,$0C,$0C   ; $5B vertical izq
+        .byte $30,$30,$30,$30,$30,$30,$30,$30   ; $5C vertical der
+        .byte $0C,$0C,$0C,$0F,$00,$00,$00,$00   ; $5D esquina aba-izq
+        .byte $30,$30,$30,$F0,$00,$00,$00,$00   ; $5E esquina aba-der
+        .byte $02,$02,$02,$02,$02,$02,$02,$00   ; $5F '1'
+        .byte $2A,$02,$02,$2A,$20,$20,$2A,$00   ; $60 '2'
+        .byte $02,$02,$08,$08,$08,$20,$20,$00   ; $61 '/'
 dn_p    .byte 0         ; auxiliares de dibujar_nivel
 dn_finl .byte 0
 dn_finh .byte 0
@@ -103,7 +152,7 @@ rob_tiro :MAXROB .byte 0        ; tiradores: actualizaciones hasta el proximo di
 
 ; --- tiradores (balaenemiga.asm): robots con rob_clase / (fuente_tirador)
 ; disparan al jugador cada TIRO_ESPERA actualizaciones (unos 2 segundos). Sus
-; balas son los players 2 y 3 (una cada uno, color PCOLR2/3), 4 x 4
+; balas son los missiles 2 y 3 (una cada uno, COLOR3), 4 x 4
 TIROCLASE = $40         ; primer caracter del tirador ($C0 = inverso, COLOR3)
 TIRO_ESPERA = 4          ; unos 1,5 segundos
 DIST_MIN = 6            ; distancia (casillas) que el tirador quiere mantener:
@@ -132,7 +181,9 @@ ap_small .byte 0
 huida   .byte 4,6,5,7,3, 5,4,3,6,2, 6,7,4,1,5, 7,1,6,0,4
         .byte 0,2,1,3,7, 1,0,7,2,6, 2,3,0,5,1, 3,5,2,4,0
 ti_dir  .byte 0                 ; auxiliar (libre_dir)
-eb_icono .byte %01100000,%11110000,%11110000,%01100000  ; 4 x 4, bits altos
+; bits de cada missile en los bytes de PMG+$300: M0 = bala de J1, M1 = J2,
+; M2/M3 = balas enemigas 0/1
+bits_m  .byte %00000011,%00001100,%00110000,%11000000
 
 ; --- celulas del nivel (celulas.asm), hasta MAXCEL ---
 MAXCEL  = 18            ; en todo el nivel (el HUD muestra hasta 18)
@@ -163,14 +214,6 @@ snd_dist .byte $A0,$A0,$80,$A0,$80,$C0  ; $A = tono puro, $8 = ruido
 
 txt_level .byte $28,$29,$2A,$29,$28     ; "LEVEL" con la fuente de Kaiju
 hud_dirty .byte 1       ; 1 = hay que redibujar el HUD
-; icono de vidas (11 px x 3 filas con Player 2+3). Ya no se dibuja: el HUD
-; usa los iconos de energia de Kaiju; se conserva para el editor.: 3 mini-iconos de 3 px
-; en columnas 0-2, 4-6 y 8-10 (columnas 3 y 7 libres). 2 bytes por fila:
-; P2 = columnas 0-7, P3 = columnas 8-10 en sus bits 7-5. Dibujalo en
-; editor-sprite.html (panel Vidas) y pega aqui el .byte exportado.
-vida_icono .byte %10101010,%10100000
-        .byte %11101110,%11100000
-        .byte %01000100,%01000000
 ; sprite de la bala (missiles 0+1, 2 cols x 4 filas): cada pareja de
 ; bits se enciende en bloque, sin pixeles sueltos. M1 = col 0 (bits 3-2),
 ; M0 = col 1 (bits 1-0). Valores por fila: $0 vacio, $3 der, $C izq,
@@ -180,6 +223,10 @@ bala_icono .byte %0000
         .byte %1111
         .byte %1111
         .byte %0000
+; bala_icono para un missile de ancho doble (SIZEM): la columna izquierda en
+; los bits altos de cada pareja y la derecha en los bajos, repetido para los
+; 4 missiles (se enmascara con bits_m). La arma iniciar
+bala_m  :4 .byte 0
 
 ; poses del jugador (kaiju_graficos.asm). Cada pose es P0 (24 bytes) seguido
 ; de P1 (24 bytes); dibujar_jugador cuenta con eso. Las B van tras las A.
@@ -187,10 +234,22 @@ POSE_QUIETO_DER = 0
 POSE_CAMINA_A   = 1     ; + paso: 2 = camina B
 POSE_ARRIBA_A   = 3     ; + paso: 4 = de espaldas B
 POSE_QUIETO_IZQ = 5
+; las de J2 (kaiju2_graficos.asm) van POSES_J2 lugares despues
+POSES_J2 = 6
 poses_lo .byte <kaiju_quieto_der_p0,<kaiju_camina_a_p0,<kaiju_camina_b_p0
         .byte <kaiju_arriba_a_p0,<kaiju_arriba_b_p0,<kaiju_quieto_izq_p0
+        .byte <kaiju2_quieto_der_p0,<kaiju2_camina_a_p0,<kaiju2_camina_b_p0
+        .byte <kaiju2_arriba_a_p0,<kaiju2_arriba_b_p0,<kaiju2_quieto_izq_p0
 poses_hi .byte >kaiju_quieto_der_p0,>kaiju_camina_a_p0,>kaiju_camina_b_p0
         .byte >kaiju_arriba_a_p0,>kaiju_arriba_b_p0,>kaiju_quieto_izq_p0
+        .byte >kaiju2_quieto_der_p0,>kaiju2_camina_a_p0,>kaiju2_camina_b_p0
+        .byte >kaiju2_arriba_a_p0,>kaiju2_arriba_b_p0,>kaiju2_quieto_izq_p0
+        .if kaiju2_quieto_der_p1<>kaiju2_quieto_der_p0+24 .or kaiju2_camina_a_p1<>kaiju2_camina_a_p0+24 .or kaiju2_camina_b_p1<>kaiju2_camina_b_p0+24
+        .error "kaiju2_graficos.asm: cada pose debe tener P1 justo despues de P0"
+        .endif
+        .if kaiju2_arriba_a_p1<>kaiju2_arriba_a_p0+24 .or kaiju2_arriba_b_p1<>kaiju2_arriba_b_p0+24 .or kaiju2_quieto_izq_p1<>kaiju2_quieto_izq_p0+24
+        .error "kaiju2_graficos.asm: cada pose debe tener P1 justo despues de P0"
+        .endif
         .if kaiju_quieto_der_p1<>kaiju_quieto_der_p0+24 .or kaiju_camina_a_p1<>kaiju_camina_a_p0+24 .or kaiju_camina_b_p1<>kaiju_camina_b_p0+24
         .error "kaiju_graficos.asm: cada pose debe tener P1 justo despues de P0"
         .endif
@@ -202,11 +261,12 @@ poses_hi .byte >kaiju_quieto_der_p0,>kaiju_camina_a_p0,>kaiju_camina_b_p0
 filas_lo :24 dta l(PANTALLA+#*40)
 filas_hi :24 dta h(PANTALLA+#*40)
 
-; lista de pantalla (se copia a DLIST): 24 lineas en blanco, 24 filas en
-; ANTIC 4 (la 0 es el HUD) y salto con espera del VBI
+; lista de pantalla (se copia a DLIST): 24 lineas en blanco, 25 filas en
+; ANTIC 4 (la 0 es el HUD de J1, la 24 el de J2) y salto con espera del VBI
 dl_datos .byte $70,$70,$70
         .byte $44,<PANTALLA,>PANTALLA   ; ANTIC 4 + LMS
         :23 .byte $04                   ; ANTIC 4 (multicolor)
+        .byte $44,<HUD2,>HUD2           ; fila 24: HUD de J2
         .byte $41,<DLIST,>DLIST
 dl_fin
 

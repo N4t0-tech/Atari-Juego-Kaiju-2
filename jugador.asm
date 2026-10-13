@@ -1,12 +1,46 @@
-; jugador.asm - movimiento, animacion y dibujo del jugador (Player 0 + 1)
+; jugador.asm - movimiento, animacion y dibujo del jugador
 ; El jugador es el robot de Kaiju: poses de 8 x 24 a resolucion de 1 linea
-; (kaiju_graficos.asm), P0 = cuerpo y P1 = contorno, mezclados (GPRIOR $31).
+; (kaiju_graficos.asm), cuerpo y contorno mezclados (GPRIOR $31): J1 = P0 + P1,
+; J2 = P2 + P3. Las rutinas trabajan sobre el jugador activo (bloque JUG de
+; datos.asm, «jugador» = 0 o 1); cargar_jugador / guardar_jugador lo cambian.
+
+; carga el jugador A (0 o 1) en el bloque JUG
+cargar_jugador
+        sta jugador
+        jsr base_jugador
+        ldy #0
+cj_b    lda jug_datos,x
+        sta JUG,y
+        inx
+        iny
+        cpy #JUG_TAM
+        bne cj_b
+        rts
+
+; guarda el bloque JUG en la copia del jugador activo
+guardar_jugador
+        jsr base_jugador
+        ldy #0
+gj_b    lda JUG,y
+        sta jug_datos,x
+        inx
+        iny
+        cpy #JUG_TAM
+        bne gj_b
+        rts
+
+; X = desplazamiento de la copia del jugador activo en jug_datos (0 o JUG_TAM)
+base_jugador
+        ldx #0
+        lda jugador
+        beq bj_fin
+        ldx #JUG_TAM
+bj_fin  rts
 
 ; lee el joystick y mueve al jugador: limites, freno en diagonal y choques
 ; con los bloques del nivel (primero en horizontal y luego en vertical, asi
 ; se desliza a lo largo de una pared)
 mover_jugador
-        jsr borrar_jugador      ; borrar sprite en la posicion vieja
         lda #0
         sta salida
 
@@ -16,7 +50,8 @@ mover_jugador
         sta oldy
 
         ; si hay alguna direccion, se recalcula hacia donde mira (ddx, ddy)
-        lda STICK0
+        ldx jugador
+        lda STICK0,x
         and #$0F
         cmp #$0F
         beq nodir
@@ -28,7 +63,7 @@ nodir
         lda #0
         sta mvx
         sta mvy
-        lda STICK0
+        lda STICK0,x
         lsr
         bcs noup
         ldx #$FE        ; vertical: 2 lineas por frame (PMG a 1 linea)
@@ -186,52 +221,84 @@ sumapaso
         sta pose
         rts
 
-; borra las 24 lineas del robot (Player 0 y Player 1) en la posicion actual
-borrar_jugador
-        ldx py
-        ldy #24
-        lda #0
-er      sta PMG+$400,x
-        sta PMG+$500,x
-        inx
-        dey
-        bne er
+; ptr3 / ptr5 = lineas de la PMG del cuerpo y del contorno del jugador activo
+; desde py - 4 (J1: P0 y P1, J2: P2 y P3)
+pmg_jugador
+        lda py
+        sec
+        sbc #4
+        sta ptr3
+        sta ptr5
+        lda jugador
+        asl             ; C = 0 (jugador es 0 o 1)
+        adc #>(PMG+$400)
+        sta ptr3+1
+        adc #1
+        sta ptr5+1
         rts
 
-; dibuja la pose actual: 24 filas de P0 (cuerpo) y P1 (contorno, guardado
-; 24 bytes despues), espejadas con revtab si espejo = $80, y fija la columna
+; dibuja la pose actual: 24 filas del cuerpo y del contorno (guardado 24 bytes
+; despues), espejadas con revtab si espejo = $80, y fija la columna. No se
+; borra antes: se limpian las 4 lineas de arriba y las 4 de abajo (el jugador
+; se mueve hasta 4 lineas por paso), asi el sprite nunca queda vacio mientras
+; ANTIC lo muestra (si no, parpadea)
 dibujar_jugador
-        ldx pose
-        lda poses_lo,x
+        lda pose        ; J2 tiene sus propias poses (kaiju2_graficos.asm)
+        ldx jugador
+        beq dj_pose
+        clc
+        adc #POSES_J2
+dj_pose tax
+        lda poses_lo,x  ; ptr = pose - 4 y ptr4 = pose + 20: con Y = 4..27
+        sec
+        sbc #4
         sta ptr
         lda poses_hi,x
+        sbc #0
         sta ptr+1
-        ldx py
-        ldy #0
-dj      lda (ptr),y     ; fila de P0
-        jsr espejar
-        sta PMG+$400,x
-        tya
+        lda ptr
         clc
         adc #24
-        tay
-        lda (ptr),y     ; misma fila de P1
+        sta ptr4
+        lda ptr+1
+        adc #0
+        sta ptr4+1
+        jsr pmg_jugador
+        ldy #31
+        lda #0
+dj_aba  sta (ptr3),y    ; las 4 lineas de abajo
+        sta (ptr5),y
+        dey
+        cpy #27
+        bne dj_aba
+dj      lda (ptr),y     ; fila del cuerpo
         jsr espejar
-        sta PMG+$500,x
-        tya
-        sec
-        sbc #23         ; siguiente fila de P0
-        tay
-        inx
-        cpy #24
+        sta (ptr3),y
+        lda (ptr4),y    ; misma fila del contorno
+        jsr espejar
+        sta (ptr5),y
+        dey
+        cpy #3
         bne dj
+        lda #0
+dj_arr  sta (ptr3),y    ; las 4 lineas de arriba
+        sta (ptr5),y
+        dey
+        bpl dj_arr
         lda invul       ; invulnerable: parpadea (oculto 4 pasos de cada 8)
         and #4
         beq dj_pos
         lda #0          ; HPOS 0: fuera de la pantalla
-        beq dj_hpos
+        beq hpos_jugador
 dj_pos  lda px
-dj_hpos sta HPOSP0
+; pone el cuerpo y el contorno del jugador activo en el HPOS A
+hpos_jugador
+        ldx jugador
+        beq hj_j1
+        sta HPOSP2
+        sta HPOSP3
+        rts
+hj_j1   sta HPOSP0
         sta HPOSP1
         rts
 
