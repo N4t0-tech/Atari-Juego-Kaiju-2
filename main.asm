@@ -16,7 +16,6 @@
 ;   partes.asm    niveles de varias partes (pantallas)
 ;   etapas.asm    titulo, etapas y mensajes
 ;   datos.asm     variables y graficos del sprite
-;   kaiju2_graficos.asm  aspecto (poses y colores) del jugador 2
 ;   kaiju_*.asm   recursos de Kaiju (graficos, titulo); kaiju_titulo.asm
 ;                 ocupa $6000-$7EAF
 ;   niveles.asm   niveles: mapas, robots y celulas (editor-sprite.html), en
@@ -188,7 +187,7 @@ iniciar
         sta COLOR4
         sta HPOSP2      ; P2 y P3: J2
         sta HPOSP3
-        lda #KAIJU2_PCOLR0      ; cuerpo de J2 (kaiju2_graficos.asm)
+        lda #KAIJU2_PCOLR0      ; cuerpo de J2 (kaiju_graficos.asm)
         sta PCOLR2
         lda #KAIJU2_PCOLR1      ; contorno de J2
         sta PCOLR3
@@ -227,7 +226,6 @@ in_b2   lda tmp
         icl "datos.asm"
 
         icl "kaiju_graficos.asm"
-        icl "kaiju2_graficos.asm"      ; aspecto del jugador 2
 
         ; RAM para las partes del nivel descomprimidas (no va en el .xex)
 MAPAS   = *

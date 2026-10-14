@@ -13,6 +13,8 @@
 ; --- colores (registros sombra del OS) ---
 KAIJU_PCOLR0    = $B8   ; cuerpo del jugador (P0)
 KAIJU_PCOLR1    = $3A   ; contorno del jugador (P1); mezcla P0|P1 = $BA
+KAIJU2_PCOLR0   = $78   ; jugador 2: mismas poses, cuerpo (P2)
+KAIJU2_PCOLR1   = $3A   ; contorno del jugador 2 (P3); mezcla P2|P3 = $7A
 KAIJU_COLOR0    = $8A   ; bloques: pixel 01
 KAIJU_COLOR1    = $34   ; bloques: pixel 10
 KAIJU_COLOR2    = $CC   ; bloques: pixel 11

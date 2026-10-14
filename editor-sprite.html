@@ -106,12 +106,12 @@ Al terminar pulsa <strong>Exportar</strong> y pásame el texto: yo actualizo <co
   <h2>Kaiju · poses 8 × 24 · <span id="kjtit">Player 0 + Player 1</span> (resolución de 1 línea)</h2>
   <div class="grupo" id="kjug">
     <button data-kj="0" class="on">Jugador 1 · kaiju_graficos.asm</button>
-    <button data-kj="1">Jugador 2 · kaiju2_graficos.asm</button>
+    <button data-kj="1">Jugador 2 · solo colores</button>
   </div>
   <p class="ayuda">Las poses de <code>kaiju_graficos.asm</code>. Cada fila es una sola línea de pantalla,
     por eso los píxeles son el doble de anchos que de altos. El juego original siempre usaba la mezcla
-    (<code>GPRIOR = $31</code>): pintar en las dos capas da el 3er color. El jugador 2 (cooperativo) tiene
-    sus propias poses y colores (<code>kaiju2_graficos.asm</code>, Player 2 + 3).</p>
+    (<code>GPRIOR = $31</code>): pintar en las dos capas da el 3er color. El jugador 2 (cooperativo) usa
+    las mismas poses con otros colores (<code>KAIJU2_PCOLR0/1</code>, Player 2 + 3).</p>
   <div class="fila">
     <div>
       <div class="grupo" id="herr">
@@ -248,7 +248,7 @@ Al terminar pulsa <strong>Exportar</strong> y pásame el texto: yo actualizo <co
     <code>kaiju_graficos.asm</code>, o abre esos archivos (puedes elegir varios a la vez).</p>
   <textarea id="imp" style="height:100px; color:var(--texto)"></textarea>
   <div class="grupo" style="margin-top:6px"><button id="cargar">Cargar en el editor</button>
-    <button id="abrir">Abrir datos.asm / main.asm / kaiju_graficos.asm / kaiju2_graficos.asm…</button></div>
+    <button id="abrir">Abrir datos.asm / main.asm / kaiju_graficos.asm…</button></div>
   <input type="file" id="archivo" accept=".asm" multiple style="display:none">
 </div>
 
@@ -288,9 +288,8 @@ const INICIAL = {
   col: { bala:0x26, fondo:0x00 }
 };
 const copia = o => JSON.parse(JSON.stringify(o));
-// jugador 2 (kaiju2_graficos.asm): sus 6 poses y colores KAIJU2_PCOLR0/1;
-// arranca como copia del jugador 1
-INICIAL.kaiju2 = { p0:0x78, p1:0x3A, poses:copia(INICIAL.kaiju.poses) };
+// jugador 2: las mismas poses, solo sus colores KAIJU2_PCOLR0/1 (kaiju_graficos.asm)
+INICIAL.kaiju2 = { p0:0x78, p1:0x3A };
 let BASE = copia(INICIAL);   // lo que tiene el juego (para «descartar borrador»)
 let S = copia(INICIAL);      // lo que se está editando
 
@@ -487,7 +486,7 @@ document.addEventListener('keydown', e => {
 const KPOSES = [['quieto_der', 'Quieto →'], ['camina_a', 'Camina A'], ['camina_b', 'Camina B'],
   ['arriba_a', 'Espaldas A'], ['arriba_b', 'Espaldas B'], ['quieto_izq', '← Quieto']];
 let kSel = 0, kPincel = 1;
-// jugador que se edita (0 = S.kaiju, 1 = S.kaiju2); la «Prueba» lo muestra
+// colores que se editan (0 = S.kaiju, 1 = S.kaiju2; las poses son siempre las de S.kaiju); la «Prueba» lo muestra
 let kJ = 0;
 const KJ = () => kJ ? S.kaiju2 : S.kaiju;
 document.querySelectorAll('[data-kj]').forEach(b => b.addEventListener('click', () => {
@@ -497,9 +496,9 @@ document.querySelectorAll('[data-kj]').forEach(b => b.addEventListener('click', 
   refrescar();
 }));
 const colorKaiju = idx => idx === 0 ? null : PAL[idx === 1 ? KJ().p0 : idx === 2 ? KJ().p1 : (KJ().p0 | KJ().p1)];
-const getK = (i, x, y) => bit(KJ().poses[i].p0[y], x) | (bit(KJ().poses[i].p1[y], x) << 1);
+const getK = (i, x, y) => bit(S.kaiju.poses[i].p0[y], x) | (bit(S.kaiju.poses[i].p1[y], x) << 1);
 function setK(i, x, y, v) {
-  const m = 0x80 >> x, p = KJ().poses[i];
+  const m = 0x80 >> x, p = S.kaiju.poses[i];
   p.p0[y] = (v & 1) ? (p.p0[y] | m) : (p.p0[y] & ~m);
   p.p1[y] = (v & 2) ? (p.p1[y] | m) : (p.p1[y] & ~m);
 }
@@ -524,12 +523,12 @@ KPOSES.forEach(([, n], i) => {
 });
 ['kanim_c', 'kanim_a', 'kanim_d', 'kanim_i'].forEach(id => { const c = document.getElementById(id); c.width = 64; c.height = 96; });
 document.querySelectorAll('[data-kop]').forEach(b => b.addEventListener('click', () => {
-  guardarUndo(); const f = OPS[b.dataset.kop], p = KJ().poses[kSel];
+  guardarUndo(); const f = OPS[b.dataset.kop], p = S.kaiju.poses[kSel];
   p.p0 = f(p.p0); p.p1 = f(p.p1); cambio();
 }));
 document.getElementById('kcopiarbtn').addEventListener('click', () => {
   const dst = +document.getElementById('kcopiar').value; if (dst === kSel) return;
-  guardarUndo(); KJ().poses[dst] = copia(KJ().poses[kSel]); cambio();
+  guardarUndo(); S.kaiju.poses[dst] = copia(S.kaiju.poses[kSel]); cambio();
 });
 function pintarKaiju() {
   kMinis.forEach(({ d, cv }, i) => { d.classList.toggle('sel', i === kSel); dibujarKaiju(cv.getContext('2d'), i, 4); });
@@ -1524,18 +1523,12 @@ function exportar() {
     `        lda #${hex(C.fondo)}`, '        sta COLOR4      ; fondo y borde');
   L.push('', '; ==================== kaiju_graficos.asm ====================',
     `KAIJU_PCOLR0    = ${hex(S.kaiju.p0)}   ; cuerpo del jugador (P0)`,
-    `KAIJU_PCOLR1    = ${hex(S.kaiju.p1)}   ; contorno del jugador (P1); mezcla P0|P1 = ${hex(S.kaiju.p0 | S.kaiju.p1)}`);
+    `KAIJU_PCOLR1    = ${hex(S.kaiju.p1)}   ; contorno del jugador (P1); mezcla P0|P1 = ${hex(S.kaiju.p0 | S.kaiju.p1)}`,
+    `KAIJU2_PCOLR0   = ${hex(S.kaiju2.p0)}   ; jugador 2: mismas poses, cuerpo (P2)`,
+    `KAIJU2_PCOLR1   = ${hex(S.kaiju2.p1)}   ; contorno del jugador 2 (P3); mezcla P2|P3 = ${hex(S.kaiju2.p0 | S.kaiju2.p1)}`);
   KPOSES.forEach(([n, t], i) => ['p0', 'p1'].forEach(c => {
     L.push(`; ${t} (${c === 'p0' ? 'Player 0, cuerpo' : 'Player 1, contorno'})`);
     S.kaiju.poses[i][c].forEach((v, f) => L.push((f === 0 ? `kaiju_${n}_${c}` : '').padEnd(24) + '.byte %' + bin8(v)));
-  }));
-  const K2 = S.kaiju2;
-  L.push('', '; ==================== kaiju2_graficos.asm ====================',
-    `KAIJU2_PCOLR0   = ${hex(K2.p0)}   ; cuerpo del jugador 2 (P2)`,
-    `KAIJU2_PCOLR1   = ${hex(K2.p1)}   ; contorno del jugador 2 (P3); mezcla P2|P3 = ${hex(K2.p0 | K2.p1)}`);
-  KPOSES.forEach(([n, t], i) => ['p0', 'p1'].forEach(c => {
-    L.push(`; ${t} (${c === 'p0' ? 'Player 2, cuerpo' : 'Player 3, contorno'})`);
-    K2.poses[i][c].forEach((v, f) => L.push((f === 0 ? `kaiju2_${n}_${c}` : '').padEnd(24) + '.byte %' + bin8(v)));
   }));
   document.getElementById('exp').value = L.join('\n');
 }
@@ -1574,11 +1567,7 @@ function cargarTexto(texto, destino) {
   for (const [, r, v] of texto.matchAll(/^KAIJU_(PCOLR[01])\s*=\s*\$([0-9a-f]{2})/gim)) {
     destino.kaiju[r.toUpperCase() === 'PCOLR0' ? 'p0' : 'p1'] = parseInt(v, 16) & 0xFE; algo = true;
   }
-  // jugador 2 (kaiju2_graficos.asm)
-  KPOSES.forEach(([n], i) => {
-    const a = tomar(`kaiju2_${n}_p0`, -1, 24), b = tomar(`kaiju2_${n}_p1`, -1, 24);
-    if (a && b) { destino.kaiju2.poses[i] = { p0:a, p1:b }; algo = true; }
-  });
+  // colores del jugador 2
   for (const [, r, v] of texto.matchAll(/^KAIJU2_(PCOLR[01])\s*=\s*\$([0-9a-f]{2})/gim)) {
     destino.kaiju2[r.toUpperCase() === 'PCOLR0' ? 'p0' : 'p1'] = parseInt(v, 16) & 0xFE; algo = true;
   }
@@ -1600,7 +1589,7 @@ function cargarTexto(texto, destino) {
 document.getElementById('cargar').addEventListener('click', () => {
   const nuevo = copia(S);
   if (!cargarTexto(document.getElementById('imp').value, nuevo))
-    { alert('No encontré datos: pega los .byte de datos.asm (bala_icono), las poses de kaiju_graficos.asm / kaiju2_graficos.asm o los colores de main.asm.'); return; }
+    { alert('No encontré datos: pega los .byte de datos.asm (bala_icono), las poses de kaiju_graficos.asm o los colores de main.asm.'); return; }
   guardarUndo(); S = nuevo; cambio();
 });
 document.getElementById('abrir').addEventListener('click', () => document.getElementById('archivo').click());
@@ -1622,6 +1611,7 @@ if (borrador && borrador.col) {   // los borradores viejos traen el robot origin
   if (borrador.kaiju && borrador.kaiju.poses) borrador.kaiju.poses.length = 6;
   if (!borrador.kaiju) borrador.kaiju = copia(INICIAL.kaiju);
   if (!borrador.kaiju2) borrador.kaiju2 = copia(INICIAL.kaiju2);
+  delete borrador.kaiju2.poses;   // J2 ya no tiene poses propias
 }
 if (borrador && borrador.col && JSON.stringify(borrador) !== JSON.stringify(BASE)) {
   S = borrador; document.getElementById('aviso').style.display = 'block';
@@ -1631,10 +1621,10 @@ document.getElementById('descartar').addEventListener('click', () => {
 });
 // si el editor se sirve por http junto al repo, lee datos.asm y main.asm al abrir
 // (abriéndolo con doble clic el navegador lo bloquea y se usa INICIAL)
-Promise.all(['datos.asm', 'main.asm', 'kaiju_graficos.asm', 'kaiju2_graficos.asm'].map(n => fetch(n).then(r => r.ok ? r.text() : '').catch(() => '')))
-  .then(([d, m, k, k2]) => {
+Promise.all(['datos.asm', 'main.asm', 'kaiju_graficos.asm'].map(n => fetch(n).then(r => r.ok ? r.text() : '').catch(() => '')))
+  .then(([d, m, k]) => {
     const b = copia(BASE);
-    if (cargarTexto(d + '\n' + m + '\n' + k + '\n' + k2, b)) {
+    if (cargarTexto(d + '\n' + m + '\n' + k, b)) {
       BASE = b;
       if (document.getElementById('aviso').style.display !== 'block') { S = copia(BASE); refrescar(); exportar(); }
     }

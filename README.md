@@ -76,8 +76,8 @@ Si clonás con git, evitá que convierta los finales de línea del binario `kaij
 - **Energía**: empezás con 5; después de cada golpe hay un rato de invulnerabilidad. Con 0 es GAME OVER.
 - Superando el último nivel aparece "YOU ARE SUPER PLAYER".
 - **Cooperativo**: se puede jugar solo o de a dos en cualquier nivel. El otro jugador entra cuando quiera
-  apretando el botón de su joystick: aparece al lado de su compañero con 5 de energía. J2 es el robot de otro color. Cada uno tiene su energía y sus puntos (J1 en la fila de
-  arriba, J2 en la de abajo); las células son de los dos. Si uno le dispara a una célula, pierde energía él
+  apretando el botón de su joystick: aparece al lado de su compañero con 5 de energía. J2 es el robot de otro color. Cada uno tiene su energía (J1 en la fila de
+  arriba, J2 en la de abajo); los puntos y las células son de los dos. Si uno le dispara a una célula, pierde energía él
   y se repite el nivel. Para pasar a otra parte del nivel tienen que estar los dos en el hueco, empujando
   hacia el mismo lado. Quien se queda sin energía sale de la partida (y ya no puede volver a entrar); sin ninguno, GAME OVER. Los robots
   van por el jugador más cercano.
@@ -101,7 +101,6 @@ Si clonás con git, evitá que convierta los finales de línea del binario `kaij
 | `sonido.asm`           | Efectos de sonido                                              |
 | `datos.asm`            | Variables y tablas                                             |
 | `kaiju_*.asm`, `.mic`  | Recursos del Kaiju original (gráficos, fuente, textos, título) |
-| `kaiju2_graficos.asm`  | Aspecto del jugador 2 (poses y colores); lo genera el editor   |
 | `editor-sprite.html`   | Editor de sprites, colores y niveles (se abre en el navegador) |
 | `AGENTS.md`            | Documentación técnica detallada (memoria, reglas, detalles)    |
 

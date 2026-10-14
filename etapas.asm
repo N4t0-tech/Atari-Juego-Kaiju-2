@@ -5,13 +5,16 @@
 ; cooperativo). Disparar a una celula le cuesta 1 de energia a quien disparo
 ; y repite el nivel («TRY AGAIN»); un jugador sin energia queda fuera y sin
 ; ninguno, «GAME OVER». Tras el ultimo, «YOU ARE SUPER PLAYER». La energia y
-; los puntos (de cada jugador) pasan de un nivel al siguiente.
+; los puntos (compartidos) pasan de un nivel al siguiente.
 
 nueva_partida
         lda etapa_ini   ; 0 salvo que se elija otra con el selector DEBUG
         sta etapa
-        ldx #JUG_TAM*2-1        ; puntos a 0 y todo lo demas tambien
+        ldx #JUG_TAM*2-1        ; todo a 0
         lda #0
+        sta puntos
+        sta puntos+1
+        sta puntos+2
 np_b    sta jug_datos,x
         dex
         bpl np_b
@@ -209,7 +212,7 @@ cargar_etapa
         jmp modo_juego
 
 ; el jugador activo entra a la partida (apreto su boton en medio del nivel):
-; 5 de energia, puntos a 0, al lado del otro e invulnerable un rato
+; 5 de energia, al lado del otro e invulnerable un rato
 unirse
         ldx jugador
         lda #1
@@ -217,9 +220,6 @@ unirse
         lda #5
         sta energia
         lda #0
-        sta puntos
-        sta puntos+1
-        sta puntos+2
         sta gatillo     ; hay que soltar el boton para disparar
         sta gatant
         jsr preparar_jugador

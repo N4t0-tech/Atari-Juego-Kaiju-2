@@ -23,12 +23,12 @@ bx      .byte 0         ; posicion de la bala
 by      .byte 0
 bdx     .byte 0         ; velocidad de la bala
 bdy     .byte 0
-puntos  .byte 0,0,0     ; puntuacion BCD, 6 digitos (alto, medio, bajo)
 energia .byte 5         ; iconos de energia; 0 = fuera de la partida
 invul   .byte 0         ; pasos de invulnerabilidad que quedan tras un golpe
 salida  .byte 0         ; SAL_*: por donde quiso salir el jugador este paso
 JUG_FIN
 JUG_TAM = JUG_FIN - JUG
+puntos  .byte 0,0,0     ; puntuacion BCD compartida, 6 digitos (alto, medio, bajo)
 jugador .byte 0         ; jugador activo: 0 = J1, 1 = J2 (indice de STICK0, HPOSM0...)
 unido_j .byte 0,0       ; 1 = el jugador entro en esta partida (al apretar su
                         ; boton: en el titulo o en medio de un nivel)
@@ -36,7 +36,6 @@ jug_datos :JUG_TAM*2 .byte 0    ; copia de JUG de cada jugador
 ; un campo de la copia del jugador X (0 o JUG_TAM): jug_datos+J_xx,x
 J_PX    = px - JUG
 J_PY    = py - JUG
-J_PUNTOS = puntos - JUG
 J_ENERGIA = energia - JUG
 J_SALIDA = salida - JUG
 J_ACTIVA = activa - JUG
@@ -234,22 +233,10 @@ POSE_QUIETO_DER = 0
 POSE_CAMINA_A   = 1     ; + paso: 2 = camina B
 POSE_ARRIBA_A   = 3     ; + paso: 4 = de espaldas B
 POSE_QUIETO_IZQ = 5
-; las de J2 (kaiju2_graficos.asm) van POSES_J2 lugares despues
-POSES_J2 = 6
 poses_lo .byte <kaiju_quieto_der_p0,<kaiju_camina_a_p0,<kaiju_camina_b_p0
         .byte <kaiju_arriba_a_p0,<kaiju_arriba_b_p0,<kaiju_quieto_izq_p0
-        .byte <kaiju2_quieto_der_p0,<kaiju2_camina_a_p0,<kaiju2_camina_b_p0
-        .byte <kaiju2_arriba_a_p0,<kaiju2_arriba_b_p0,<kaiju2_quieto_izq_p0
 poses_hi .byte >kaiju_quieto_der_p0,>kaiju_camina_a_p0,>kaiju_camina_b_p0
         .byte >kaiju_arriba_a_p0,>kaiju_arriba_b_p0,>kaiju_quieto_izq_p0
-        .byte >kaiju2_quieto_der_p0,>kaiju2_camina_a_p0,>kaiju2_camina_b_p0
-        .byte >kaiju2_arriba_a_p0,>kaiju2_arriba_b_p0,>kaiju2_quieto_izq_p0
-        .if kaiju2_quieto_der_p1<>kaiju2_quieto_der_p0+24 .or kaiju2_camina_a_p1<>kaiju2_camina_a_p0+24 .or kaiju2_camina_b_p1<>kaiju2_camina_b_p0+24
-        .error "kaiju2_graficos.asm: cada pose debe tener P1 justo despues de P0"
-        .endif
-        .if kaiju2_arriba_a_p1<>kaiju2_arriba_a_p0+24 .or kaiju2_arriba_b_p1<>kaiju2_arriba_b_p0+24 .or kaiju2_quieto_izq_p1<>kaiju2_quieto_izq_p0+24
-        .error "kaiju2_graficos.asm: cada pose debe tener P1 justo despues de P0"
-        .endif
         .if kaiju_quieto_der_p1<>kaiju_quieto_der_p0+24 .or kaiju_camina_a_p1<>kaiju_camina_a_p0+24 .or kaiju_camina_b_p1<>kaiju_camina_b_p0+24
         .error "kaiju_graficos.asm: cada pose debe tener P1 justo despues de P0"
         .endif

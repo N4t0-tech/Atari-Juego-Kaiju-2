@@ -243,12 +243,7 @@ pmg_jugador
 ; se mueve hasta 4 lineas por paso), asi el sprite nunca queda vacio mientras
 ; ANTIC lo muestra (si no, parpadea)
 dibujar_jugador
-        lda pose        ; J2 tiene sus propias poses (kaiju2_graficos.asm)
-        ldx jugador
-        beq dj_pose
-        clc
-        adc #POSES_J2
-dj_pose tax
+        ldx pose        ; J2 usa las mismas poses, con otros colores
         lda poses_lo,x  ; ptr = pose - 4 y ptr4 = pose + 20: con Y = 4..27
         sec
         sbc #4
