@@ -35,6 +35,11 @@ fnt_b   lda fuente_caja,x
         sta FUENTE+CAJA*8,x
         dex
         bpl fnt_b
+        ldx #8*8-1      ; la salida del nivel (2 fases)
+fnt_s   lda fuente_salida,x
+        sta FUENTE+CMETA*8,x
+        dex
+        bpl fnt_s
         ldx #63         ; los 16 del tirador: $40-$47 y $50-$57, y los 8
 fnt_t   lda fuente_tirador,x    ; de la explosion: $48-$4F
         sta FUENTE+TIROCLASE*8,x
@@ -362,6 +367,10 @@ solido  and #$7F
         cmp #TIROCLASE
         bcc so_si
         cmp #TIROCLASE+$18
+        bcc so_no
+        cmp #CMETA     ; la salida se atraviesa
+        bcc so_si
+        cmp #CMETA+8
         bcc so_no
 so_si   sec
         rts

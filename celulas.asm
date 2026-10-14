@@ -49,7 +49,24 @@ pc_cel  cpx ncel
 pc_pon  jsr poner2x2
 pc_sig  inx
         jmp pc_cel
-pc_fin  rts
+pc_fin  lda sal_parte     ; y la salida, si esta en esta parte
+        cmp parte
+        bne pc_nos
+        ldy sal_y
+        lda filas_lo,y
+        clc
+        adc sal_x
+        sta ptr2
+        lda filas_hi,y
+        adc #0
+        sta ptr2+1
+        lda #CMETA
+        ldy cuenta
+        cpy #6
+        bcc pc_spon
+        lda #CMETA+4
+pc_spon jmp poner2x2
+pc_nos  rts
 
 ; el jugador recoge la celula X: se borra, +100 puntos. Conserva X.
 recoger_celula

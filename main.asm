@@ -89,9 +89,14 @@ loop
         beq perdio
         lda fin
         bne fallo
+        lda meta        ; llego a la salida
+        bne superado
+        lda sal_parte   ; con salida, las celulas no terminan el nivel
+        cmp #$FF
+        bne loop
         lda celrest
         bne loop
-        ; nivel superado
+superado ; nivel superado
         inc etapa
         lda etapa
         cmp #NUM_NIVELES

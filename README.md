@@ -71,7 +71,9 @@ Si clonás con git, evitá que convierta los finales de línea del binario `kaij
   Cada bala que te toca cuesta 1 de energía; las balas se frenan en los bloques.
   Cada disparo les quita una vida (las que tenga en el editor); destruirlos da +10.
 - **Partes**: un nivel puede ocupar varias pantallas. Se pasa a la de al lado saliendo por un hueco del
-  borde; hay que juntar las células de todas.
+  borde; hay que juntar las células de todas. Así se arma un laberinto de hasta 3×3 pantallas.
+- **Salida**: si el nivel tiene una (la puerta de franjas), se gana al tocarla y las células solo dan
+  puntos. Sin salida, se gana juntando todas las células.
 - **Bloques azules**: se rompen a tiros (+1). El borde verde también lastima.
 - **Energía**: empezás con 5; después de cada golpe hay un rato de invulnerabilidad. Con 0 es GAME OVER.
 - Superando el último nivel aparece "YOU ARE SUPER PLAYER".
@@ -116,11 +118,12 @@ En el panel **Niveles**:
 1. Elegí un nivel de la lista (o **+ Nuevo**: arranca con el borde). El orden de la lista es el orden del juego.
 2. Pintá los bloques (borde, muro, bloque azul que se rompe…) con lápiz, rectángulo o relleno; el botón
    derecho borra. Con **Simetría** se pinta espejado.
-   Un nivel puede tener **varias partes** (pantallas, hasta 4: 2×1, 3×1, 2×2…). Elegí la cuadrícula en
+   Un nivel puede tener **varias partes** (pantallas, hasta 9: 3×3, 4×2, 9×1…). Elegí la cuadrícula en
    **Partes** y la parte que editás en las miniaturas. En el juego se pasa de una a otra saliendo por un
    hueco del borde: al abrir un hueco se abre también en la parte vecina. Todo lo que pasa en una parte
    (bloques rotos, células, robots) queda así al volver.
-3. **Inicio** pone al jugador; **Célula** pone células (hasta 18 por nivel); **Robot** pone robots (hasta 16 por nivel).
+3. **Inicio** pone al jugador; **Célula** pone células (hasta 18 por nivel); **Robot** pone robots (hasta 16 por nivel);
+   **Salida** pone la salida (una por nivel).
    Arrastralos para moverlos y borralos con el botón derecho.
 4. Elegí un robot para cambiar su tipo (normal o tirador, en dos colores), su vida, su patrulla (dos direcciones y pasos; la línea verde
    muestra el recorrido) y su zona de vigilancia (en amarillo; se puede dibujar con **Zona**).

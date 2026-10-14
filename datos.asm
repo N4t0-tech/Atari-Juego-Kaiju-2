@@ -84,7 +84,7 @@ ox_r    .byte 0
 oy_r    .byte 0
 
 ; --- partes del nivel (partes.asm) ---
-MAXPARTES = 4           ; partes por nivel (cada una usa 920 bytes de MAPAS)
+MAXPARTES = 9           ; partes por nivel (cada una usa 920 bytes de MAPAS)
 parte   .byte 0         ; parte en pantalla
 pcol    .byte 0         ; su columna y fila en la cuadricula
 pfil    .byte 0
@@ -118,6 +118,26 @@ fuente_caja .byte $00,$00,$00,$0F,$0C,$0C,$0C,$0C       ; $58 esquina arr-izq
         .byte $02,$02,$02,$02,$02,$02,$02,$00   ; $5F '1'
         .byte $2A,$02,$02,$2A,$20,$20,$2A,$00   ; $60 '2'
         .byte $02,$02,$08,$08,$08,$20,$20,$00   ; $61 '/'
+;
+; salida del nivel (celulas.asm): 2 x 2 caracteres en la casilla sal_x/sal_y
+; de la parte sal_parte ($FF = el nivel no tiene salida y se gana recogiendo
+; todas las celulas). Tocarla gana el nivel (meta = 1); las celulas solo dan
+; puntos. Pasable para jugadores y balas enemigas, robots no entran
+CMETA   = $62           ; $62-$65 y $66-$69 (2 fases), libres en los niveles
+sal_parte .byte $FF
+sal_x   .byte 0
+sal_y   .byte 0
+meta    .byte 0         ; 1 = un jugador llego a la salida
+; marco en pixel 11 (COLOR2) y franjas 01/10 que se alternan en cada fase
+fuente_salida
+        .byte $FF,$D5,$EA,$D5,$EA,$D5,$EA,$D5   ; $62 arr-izq
+        .byte $FF,$57,$AB,$57,$AB,$57,$AB,$57   ; $63 arr-der
+        .byte $EA,$D5,$EA,$D5,$EA,$D5,$EA,$FF   ; $64 aba-izq
+        .byte $AB,$57,$AB,$57,$AB,$57,$AB,$FF   ; $65 aba-der
+        .byte $FF,$EA,$D5,$EA,$D5,$EA,$D5,$EA   ; $66-$69: franjas al reves
+        .byte $FF,$AB,$57,$AB,$57,$AB,$57,$AB
+        .byte $D5,$EA,$D5,$EA,$D5,$EA,$D5,$FF
+        .byte $57,$AB,$57,$AB,$57,$AB,$57,$FF
 dn_p    .byte 0         ; auxiliares de dibujar_nivel
 dn_finl .byte 0
 dn_finh .byte 0

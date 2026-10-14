@@ -70,7 +70,15 @@ cr_c2   cpx ncel
         sta cel_viva,x
         inx
         jmp cr_c2
-cr_fin  rts
+cr_fin  jsr leer_nivel  ; salida: parte ($FF = sin salida), x, y
+        sta sal_parte
+        jsr leer_nivel
+        sta sal_x
+        jsr leer_nivel
+        sta sal_y
+        lda #0
+        sta meta
+        rts
 
 ; ptr2 = direccion en pantalla de la casilla del robot X. Conserva X.
 dir_robot
@@ -514,7 +522,16 @@ ct_c2   cpx ncel
         jsr recoger_celula
 ct_cs   inx
         jmp ct_c2
-ct_rob  ldx #0
+ct_rob  lda sal_parte     ; la salida, si esta en esta parte
+        cmp parte
+        bne ct_r0
+        lda sal_x
+        ldy sal_y
+        jsr toca_caja
+        bcc ct_r0
+        lda #1
+        sta meta
+ct_r0   ldx #0
 ct_r2   cpx nrob
         bcs ct_fin
         lda rob_parte,x
