@@ -16,10 +16,10 @@
 ;   partes.asm    niveles de varias partes (pantallas)
 ;   etapas.asm    titulo, etapas y mensajes
 ;   datos.asm     variables y graficos del sprite
-;   kaiju_*.asm   recursos de Kaiju (graficos, titulo); kaiju_titulo.asm
-;                 ocupa $6000-$7EAF
+;   kaiju_*.asm   recursos de Kaiju (graficos, titulo); el titulo va
+;                 comprimido (kaiju_titulo.lz, comprimir_titulo.py)
 ;   niveles.asm   niveles: mapas, robots y celulas (editor-sprite.html), en
-;                 su propio bloque desde $9100 (ver apagar_basic)
+;                 su propio bloque desde $7100 (ver apagar_basic)
 
         .ifndef DEBUG
 DEBUG   = 0             ; 1 = selector de nivel en el titulo (mads -d:DEBUG=1)
@@ -238,19 +238,17 @@ MAPAS   = *
         .error "No entran los MAPAS de las partes antes de $6000"
         .endif
 
-        ; el titulo se carga en $6000 y $7000 (bloques de 4 KB para ANTIC)
-        .if * > $6000
-        .error "El programa pasa de $6000: no cabe antes de la imagen de titulo"
+        ; el titulo se descomprime encima de MAPAS: no puede pisar el programa
+        .if MAPAS > kaiju_titulo1
+        .error "El programa pasa de kaiju_titulo1 ($4010): la imagen del titulo lo pisaria"
         .endif
-        icl "kaiju_titulo.asm"
-
-        ; el programa no puede pisar la memoria de los sprites
-        .if * > PMG
-        .error "El programa pasa de PMG: mover PMG mas arriba en hardware.asm"
+        .if KAIJU_TITULO_FIN > PMG
+        .error "La imagen del titulo pasa de PMG"
         .endif
 
-        ; los niveles, en su propio bloque (RAM del BASIC, ver apagar_basic)
+        ; titulo comprimido y niveles, en su propio bloque (RAM del BASIC, ver apagar_basic)
         org ZONA_NIVELES
+        icl "kaiju_titulo.asm"
         icl "niveles.asm"       ; generado con editor-sprite.html (panel Niveles)
 
         .if NUM_NIVELES < 1 || NUM_NIVELES > 99

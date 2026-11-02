@@ -63,14 +63,15 @@ ptr4    = $D6           ; pose + 24 (contorno)
 ptr5    = $D8           ; PMG: contorno del jugador
 
 ; --- memoria del juego ---
-PMG     = $8000         ; bloque PMG a 1 linea (2 KB, alineado a 2 KB):
+; el programa ($2000 en adelante) y despues MAPAS terminan antes de $6000; la
+; imagen del titulo se descomprime encima de MAPAS (kaiju_titulo.asm)
+PMG     = $6000         ; bloque PMG a 1 linea (2 KB, alineado a 2 KB):
                         ; +$300 missiles, +$400 P0, +$500 P1, +$600 P2, +$700 P3
-FUENTE  = $8800         ; fuente del juego (1 KB, alineada a 1 KB)
-PANTALLA = $8C00        ; 24 filas x 40: fila 0 HUD de J1, 1-23 nivel (960 bytes)
-DLIST   = $8FC0         ; lista de pantalla del juego (35 bytes, no cruza 1 KB)
-DLIST_T = $9000         ; lista de pantalla del titulo (209 bytes)
-HUD2    = $90D8         ; fila 24: HUD del jugador 2 (40 bytes, hasta $90FF)
-ZONA_NIVELES = $9100    ; niveles.asm, hasta ZONA_NIVELES_FIN (~11 KB). Es RAM
-ZONA_NIVELES_FIN = $BC00 ; porque apagar_basic (main.asm) apaga el BASIC
-                        ; ($A000-$BFFF) y lleva la pantalla del OS a $BC20
-                        ; el programa ($2000 en adelante) termina antes de $6000
+FUENTE  = $6800         ; fuente del juego (1 KB, alineada a 1 KB)
+PANTALLA = $6C00        ; 24 filas x 40: fila 0 HUD de J1, 1-23 nivel (960 bytes)
+DLIST   = $6FC0         ; lista de pantalla del juego (35 bytes, no cruza 1 KB)
+DLIST_T = $7000         ; lista de pantalla del titulo (209 bytes)
+HUD2    = $70D8         ; fila 24: HUD del jugador 2 (40 bytes, hasta $70FF)
+ZONA_NIVELES = $7100    ; titulo comprimido + niveles.asm, hasta ZONA_NIVELES_FIN
+ZONA_NIVELES_FIN = $BC00 ; (~18 KB). Es RAM porque apagar_basic (main.asm) apaga
+                        ; el BASIC ($A000-$BFFF) y lleva la pantalla del OS a $BC20

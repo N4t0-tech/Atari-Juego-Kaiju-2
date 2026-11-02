@@ -103,6 +103,7 @@ Si clonás con git, evitá que convierta los finales de línea del binario `kaij
 | `sonido.asm`           | Efectos de sonido                                              |
 | `datos.asm`            | Variables y tablas                                             |
 | `kaiju_*.asm`, `.mic`  | Recursos del Kaiju original (gráficos, fuente, textos, título) |
+| `kaiju_titulo.lz`, `comprimir_titulo.py` | Título comprimido; correr el script solo si cambia `kaiju_titulo.mic` |
 | `editor-sprite.html`   | Editor de sprites, colores y niveles (se abre en el navegador) |
 | `AGENTS.md`            | Documentación técnica detallada (memoria, reglas, detalles)    |
 
@@ -131,8 +132,8 @@ En el panel **Niveles**:
 6. **💾 Descargar niveles.asm**, guardalo en la carpeta del juego reemplazando el anterior y compilá.
 
 Para seguir editando otro día, el editor recuerda tus niveles en el navegador; también podés abrir un
-`niveles.asm` con **Abrir niveles.asm…**. Abajo se ve cuánta memoria ocupan: los niveles tienen 11 KB para
-ellos solos (unos 25 grandes como los de Kaiju o 45 sencillos).
+`niveles.asm` con **Abrir niveles.asm…**. Abajo se ve cuánta memoria ocupan: los niveles tienen unos 16 KB para
+ellos solos (unos 35 grandes como los de Kaiju o 65 sencillos).
 
 ## Diferencias con el original
 

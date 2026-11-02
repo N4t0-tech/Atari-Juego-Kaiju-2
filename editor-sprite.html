@@ -26,6 +26,20 @@
   .grupo { display:flex; gap:6px; flex-wrap:wrap; margin-bottom:8px; }
   canvas { image-rendering:pixelated; display:block; }
   .rejilla { cursor:crosshair; touch-action:none; border:1px solid var(--borde); border-radius:4px; }
+  /* pistas: un ? que muestra su texto al pasar el mouse o al tocarlo (foco) */
+  .q { position:relative; display:inline-flex; align-items:center; justify-content:center; width:17px; height:17px;
+       border-radius:50%; border:1px solid var(--acento); color:var(--acento); font:600 11px/1 system-ui, sans-serif;
+       cursor:help; vertical-align:middle; margin-left:4px; }
+  .q:hover, .q:focus { background:var(--acento); color:var(--fondo); outline:none; }
+  .q:hover::after, .q:focus::after { content:attr(data-ayuda); position:absolute; top:calc(100% + 6px); left:0; z-index:20;
+       width:max-content; max-width:min(300px, 80vw); white-space:pre-line; text-align:left; background:#0c0d10;
+       color:var(--texto); border:1px solid var(--acento); border-radius:6px; padding:8px 10px;
+       font:400 12px/1.45 system-ui, sans-serif; box-shadow:0 4px 14px #000a; }
+  .q.izq:hover::after, .q.izq:focus::after { left:auto; right:0; }
+  details.guia { background:#1a2a2f; border:1px solid #2f5560; border-radius:8px; padding:6px 12px; margin:8px 0; max-width:75em; }
+  details.guia summary { cursor:pointer; color:var(--acento); font-weight:600; }
+  details.guia ol { margin:6px 0; padding-left:22px; color:var(--texto); }
+  details.guia li { margin:3px 0; }
   #aviso { display:none; background:#3a3020; border:1px solid #7a6530; border-radius:8px; padding:8px 12px; margin-top:12px; }
 
   /* casillas de color */
@@ -104,11 +118,20 @@ Al terminar pulsa <strong>Exportar</strong> y pásame el texto: yo actualizo <co
 
 <!-- ============ KAIJU ============ -->
 <div class="panel">
-  <h2>Kaiju · poses 8 × 24 · <span id="kjtit">Player 0 + Player 1</span> (resolución de 1 línea)</h2>
+  <h2>Kaiju · poses 8 × 24 · <span id="kjtit">Player 0 + Player 1</span> (resolución de 1 línea) <span class="q" data-ayuda="El robot que maneja el jugador. Tiene 6 poses de 8 × 24 píxeles.
+Cada pose son 2 capas (Player 0 = cuerpo, Player 1 = contorno): donde pintas en las dos se ve un 3er color, la mezcla.">?</span></h2>
   <div class="grupo" id="kjug">
     <button data-kj="0" class="on">Jugador 1 · kaiju_graficos.asm</button>
-    <button data-kj="1">Jugador 2 · solo colores</button>
+    <button data-kj="1">Jugador 2 · solo colores</button> <span class="q" data-ayuda="Jugador 1: editas las poses y sus colores.
+Jugador 2: solo cambias sus colores; usa las mismas poses del jugador 1.">?</span>
   </div>
+  <details class="guia"><summary>Paso a paso: cambiar el robot del jugador</summary><ol>
+    <li>Elige la pose en <b>Pose que editas</b> (a la derecha).</li>
+    <li>Elige el color en <b>Colores</b> o con las teclas <kbd>1</kbd>–<kbd>4</kbd>: cuerpo, contorno, mezcla o borrar.</li>
+    <li>Pinta en la cuadrícula con el botón izquierdo; el derecho borra.</li>
+    <li>Mira el resultado en <b>Animación</b>.</li>
+    <li>Para cambiar los colores del jugador 2, pulsa <b>Jugador 2</b> (sus poses son las mismas del jugador 1).</li>
+    <li>Al terminar, pulsa <b>Exportar</b> (al final de la página) y pásame el texto.</li></ol></details>
   <p class="ayuda">Las poses de <code>kaiju_graficos.asm</code>. Cada fila es una sola línea de pantalla,
     por eso los píxeles son el doble de anchos que de altos. El juego original siempre usaba la mezcla
     (<code>GPRIOR = $31</code>): pintar en las dos capas da el 3er color. El jugador 2 (cooperativo) usa
@@ -127,16 +150,19 @@ Al terminar pulsa <strong>Exportar</strong> y pásame el texto: yo actualizo <co
         <button data-kop="izq">←</button><button data-kop="der">→</button>
         <button data-kop="arr">↑</button><button data-kop="aba">↓</button>
         <button data-kop="espejoH">⇋ Espejo</button><button data-kop="espejoV">⇵ Voltear</button>
-        <button data-kop="limpiar">Limpiar</button>
+        <button data-kop="limpiar">Limpiar</button> <span class="q" data-ayuda="Flechas: corren toda la pose un píxel.
+Espejo: la da vuelta de izquierda a derecha.
+Voltear: de arriba a abajo.
+Limpiar: la borra entera.">?</span>
       </div>
-      <div class="grupo"><select id="kcopiar"></select><button id="kcopiarbtn">Copiar esta pose ahí</button></div>
+      <div class="grupo"><select id="kcopiar"></select><button id="kcopiarbtn">Copiar esta pose ahí</button> <span class="q" data-ayuda="Copia la pose que estás editando encima de la que elijas en la lista (la reemplaza). Sirve para empezar una pose nueva desde otra parecida.">?</span></div>
     </div>
     <div style="flex:1; min-width:280px">
-      <h3>Pose que editas</h3>
+      <h3>Pose que editas <span class="q" data-ayuda="Haz clic en una para editarla. CAMINA A/B se alternan al caminar; el juego las da vuelta solo cuando el robot va a la izquierda.">?</span></h3>
       <div class="frames" id="kframes" style="flex-wrap:wrap"></div>
-      <h3>Colores</h3>
+      <h3>Colores <span class="q" data-ayuda="Haz clic en un color para pintar con él, o pulsa 1-4. Haz clic en la muestra de color para elegir otro de los 128 del Atari.">?</span></h3>
       <div class="slots" id="kslots"></div>
-      <h3>Animación (como en el juego: cambia de paso cada 5 cuadros)</h3>
+      <h3>Animación (como en el juego: cambia de paso cada 5 cuadros) <span class="q" data-ayuda="Así se mueve en el juego. Se actualiza mientras pintas.">?</span></h3>
       <div class="fila">
         <div style="text-align:center;font-size:12px"><canvas id="kanim_c"></canvas>caminando</div>
         <div style="text-align:center;font-size:12px"><canvas id="kanim_a"></canvas>de espaldas</div>
@@ -150,14 +176,14 @@ Al terminar pulsa <strong>Exportar</strong> y pásame el texto: yo actualizo <co
 <!-- ============ BALA + PANTALLA ============ -->
 <div class="fila">
   <div class="panel">
-    <h2>Bala · 2 × 4 · un missile de ancho doble por jugador (color = COLOR3, el mismo que los enemigos)</h2>
+    <h2>Bala · 2 × 4 · un missile de ancho doble por jugador (color = COLOR3, el mismo que los enemigos) <span class="q" data-ayuda="El disparo del jugador. Haz clic en un cuadro para prenderlo o apagarlo. Su color también pinta a los enemigos rojos: si lo cambias, cambian ellos.">?</span></h2>
     <p class="ayuda" style="max-width:22em">Cada columna es un bloque de 2 píxeles de ancho.
       Se ve igual en las 8 direcciones.</p>
     <canvas id="gbala" class="rejilla"></canvas>
     <div class="slots" style="margin-top:10px" id="slot_bala"></div>
   </div>
   <div class="panel">
-    <h2>Pantalla</h2>
+    <h2>Pantalla <span class="q izq" data-ayuda="El color de fondo del juego (también el del borde).">?</span></h2>
     <div class="slots" style="flex-direction:column" id="slot_pant"></div>
   </div>
 </div>
@@ -171,21 +197,33 @@ Al terminar pulsa <strong>Exportar</strong> y pásame el texto: yo actualizo <co
     saliendo por un hueco del borde. Al terminar pulsa <strong>Descargar niveles.asm</strong> y guárdalo en la
     carpeta del juego (reemplazando el anterior), o pásame el texto de abajo. Deshacer: <kbd>Ctrl</kbd>+<kbd>Z</kbd>
     después de tocar este panel. Tus niveles se guardan solos en este navegador.</p>
+  <details class="guia"><summary>Paso a paso: hacer un nivel</summary><ol>
+    <li><b>+ Nuevo</b> crea un nivel vacío, con el borde puesto. Ponle un nombre.</li>
+    <li>Si quieres un nivel de varias pantallas, elige cuántas <b>Partes</b> tiene a lo ancho y a lo alto.</li>
+    <li>Con <b>Bloques</b>, <b>Rectángulo</b> o <b>Relleno</b> dibuja las paredes: elige el bloque a la derecha.
+      Para pasar a la parte vecina abre un hueco en el borde (de al menos 3 filas o 2 columnas).</li>
+    <li>Con <b>Inicio</b> haz clic donde empieza el jugador.</li>
+    <li>Pon <b>Células</b>: el nivel se gana recogiéndolas todas, o tocando la <b>Salida</b> si pones una.</li>
+    <li>Pon <b>Robots</b> y ajústalos en <b>Robot elegido</b>: su patrulla y su zona de vigilancia.</li>
+    <li>Revisa los <b>Avisos</b> y prueba moverte con <b>▶ Probar en la escena</b>.</li>
+    <li>Pulsa <b>💾 Descargar niveles.asm</b> y reemplaza el de la carpeta del juego.</li></ol></details>
   <div id="naviso" class="aviso">Se recuperó un borrador de niveles de una sesión anterior.
     <button id="ndescartar">Descartar y cargar los del juego</button></div>
   <div class="fila" style="margin-top:8px">
     <div class="ncol">
-      <h3 style="margin-top:0">Niveles del juego</h3>
+      <h3 style="margin-top:0">Niveles del juego <span class="q" data-ayuda="Todos los niveles, en el orden en que se juegan. Haz clic en uno para editarlo. Con ↑ Antes / ↓ Después cambias el orden. Máximo 99.">?</span></h3>
       <div id="nlista"></div>
       <div class="grupo" style="margin-top:8px"><button id="nnuevo">+ Nuevo</button><button id="nduplicar">Duplicar</button>
         <button id="nborrar">Borrar</button></div>
       <div class="grupo"><button id="nsubir">↑ Antes</button><button id="nbajar">↓ Después</button></div>
       <label class="campo">Nombre <input id="nnombre" maxlength="40"></label>
-      <div class="campo">Partes: <select id="nancho"></select> de ancho × <select id="nalto"></select> de alto</div>
+      <div class="campo">Partes: <select id="nancho"></select> de ancho × <select id="nalto"></select> de alto <span class="q" data-ayuda="Un nivel puede tener varias pantallas (partes), hasta 9 en total (por ejemplo 3 × 3).
+Haz clic en una miniatura para editarla. Arrastra una miniatura sobre otra para cambiarlas de lugar.
+En las miniaturas: verde = células, rojo = robots, celeste = jugador, amarillo = salida.">?</span></div>
       <div id="npartes"></div>
       <p class="ayuda" style="font-size:12px; max-width:220px">Elige la parte que editas. En el juego se pasa de una a otra
         saliendo por un hueco del borde: al abrir uno, se abre también en la parte vecina.</p>
-      <div class="grupo" style="margin-top:8px"><button id="nprobar">▶ Probar en la escena</button></div>
+      <div class="grupo" style="margin-top:8px"><button id="nprobar">▶ Probar en la escena</button> <span class="q" data-ayuda="Te lleva a la escena de prueba con este nivel, para recorrerlo con el robot. No tiene enemigos ni células: eso solo se ve en el juego.">?</span></div>
       <p id="nmemoria" class="ayuda" style="font-size:12px"></p>
     </div>
     <div style="flex:1; min-width:320px">
@@ -197,7 +235,12 @@ Al terminar pulsa <strong>Exportar</strong> y pásame el texto: yo actualizo <co
         <button data-nh="celula" title="Poner / mover / borrar células">◆ Célula</button>
         <button data-nh="salida" title="Poner / mover / borrar la salida del nivel (tocarla gana el nivel)">🚪 Salida</button>
         <button data-nh="robot" title="Poner / elegir / mover / borrar robots">👾 Robot</button>
-        <button data-nh="zona" title="Dibujar la zona de vigilancia del robot elegido">⬚ Zona</button>
+        <button data-nh="zona" title="Dibujar la zona de vigilancia del robot elegido">⬚ Zona</button> <span class="q" data-ayuda="Bloques: pinta de a un bloque (botón derecho borra).
+Rectángulo: arrastra para llenar un rectángulo.
+Relleno: llena una zona cerrada.
+Inicio: dónde aparece el jugador.
+Célula, Salida, Robot: clic pone, arrastrar mueve, botón derecho borra.
+Zona: arrastra para marcar dónde el robot elegido descubre al jugador.">?</span>
       </div>
       <canvas id="nmapa" class="rejilla" width="640" height="384"></canvas>
       <div id="nestado" class="ayuda" style="font-size:12px; min-height:1.5em; margin-top:4px"></div>
@@ -205,20 +248,23 @@ Al terminar pulsa <strong>Exportar</strong> y pásame el texto: yo actualizo <co
         <button id="ndeshacer">↶ Deshacer</button><button id="nrehacer">↷ Rehacer</button>
         <label style="align-self:center"><input type="checkbox" id="nespejo"> Simetría izquierda ⇋ derecha</label>
         <label style="align-self:center"><input type="checkbox" id="nrejilla" checked> Rejilla</label>
-        <button id="nborde">Poner el borde</button><button id="nvaciar">Vaciar el mapa</button>
+        <button id="nborde">Poner el borde</button><button id="nvaciar">Vaciar el mapa</button> <span class="q" data-ayuda="Simetría: lo que pintas a la izquierda se copia a la derecha.
+Rejilla: muestra las líneas de los caracteres.
+Poner el borde: vuelve a poner el borde verde de la parte (cierra los huecos).
+Vaciar el mapa: borra toda la parte, con sus células y robots.">?</span>
       </div>
     </div>
     <div class="ncol" style="width:280px">
-      <h3 style="margin-top:0">Bloque para pintar</h3>
+      <h3 style="margin-top:0">Bloque para pintar <span class="q izq" data-ayuda="El bloque que ponen Bloques, Rectángulo y Relleno. Los azules se rompen con un disparo (+1 punto); el borde verde quita energía al tocarlo.">?</span></h3>
       <div id="ntiles"></div>
       <div id="ntilenom" class="ayuda" style="font-size:12px; margin-top:4px"></div>
-      <h3>Robot elegido</h3>
+      <h3>Robot elegido <span class="q izq" data-ayuda="Elige un robot con la herramienta Robot para cambiar su tipo, su vida, su patrulla y su zona. Máximo 16 robots por nivel.">?</span></h3>
       <div id="nrobot"></div>
-      <h3>Avisos</h3>
+      <h3>Avisos <span class="q izq" data-ayuda="Problemas que encontró el editor: huecos sin parte vecina, huecos demasiado chicos, células o salida a las que no se puede llegar, robots encimados... El nivel se puede exportar igual, pero conviene arreglarlos.">?</span></h3>
       <ul id="navisos"></ul>
     </div>
   </div>
-  <h3>niveles.asm</h3>
+  <h3>niveles.asm <span class="q" data-ayuda="El archivo que usa el juego, generado con todos tus niveles. Descárgalo y reemplaza el de la carpeta del juego, o abre uno para seguir editándolo.">?</span></h3>
   <div class="grupo"><button id="ndescargar">💾 Descargar niveles.asm</button><button id="ncopiar">Copiar</button>
     <button id="nabrir">Abrir niveles.asm…</button><button id="npegar">Cargar el texto pegado</button></div>
   <input type="file" id="narchivo" accept=".asm" style="display:none">
@@ -227,7 +273,7 @@ Al terminar pulsa <strong>Exportar</strong> y pásame el texto: yo actualizo <co
 
 <!-- ============ ESCENA ============ -->
 <div class="panel">
-  <h2>Prueba en la pantalla del juego</h2>
+  <h2>Prueba en la pantalla del juego <span class="q" data-ayuda="Haz clic en la pantalla para jugar: flechas mueven, espacio dispara. Elige el nivel abajo.">?</span></h2>
   <p class="ayuda">Haz clic en la pantalla y juega: <kbd>flechas</kbd> mueven, <kbd>espacio</kbd> dispara.
     Muestra el movimiento, la animación y el disparo del juego sobre los mapas del panel Niveles (choques con los
     bloques; la bala rompe los azules, +1 punto). Es una vista previa: no tiene enemigos, células, etapas
@@ -242,10 +288,11 @@ Al terminar pulsa <strong>Exportar</strong> y pásame el texto: yo actualizo <co
 
 <!-- ============ EXPORTAR / IMPORTAR ============ -->
 <div class="panel">
-  <h2>Exportar</h2>
+  <h2>Exportar <span class="q" data-ayuda="Escribe en el cuadro el código de la bala, los colores y las poses del jugador. Copia ese texto y pásamelo: yo lo pongo en los archivos del juego.
+Los niveles se guardan aparte, con Descargar niveles.asm.">?</span></h2>
   <div class="grupo"><button id="exportar">Exportar</button><button id="copiar">Copiar</button></div>
   <textarea id="exp" readonly></textarea>
-  <h2 style="margin-top:16px">Importar</h2>
+  <h2 style="margin-top:16px">Importar <span class="q" data-ayuda="Lo contrario de Exportar: carga en el editor las poses, la bala y los colores desde los archivos del juego (o desde texto pegado).">?</span></h2>
   <p class="ayuda">Pega los <code>.byte</code> de <code>datos.asm</code>, los colores de <code>main.asm</code> y/o las poses de
     <code>kaiju_graficos.asm</code>, o abre esos archivos (puedes elegir varios a la vez).</p>
   <textarea id="imp" style="height:100px; color:var(--texto)"></textarea>
@@ -263,6 +310,7 @@ Al terminar pulsa <strong>Exportar</strong> y pásame el texto: yo actualizo <co
 </div></div>
 
 <script>
+document.querySelectorAll('.q').forEach(e => { e.tabIndex = 0; e.setAttribute('role', 'note'); e.setAttribute('aria-label', 'Ayuda: ' + e.dataset.ayuda); });
 // ===================== datos iniciales =====================
 // OJO: copia de los bytes de datos.asm (bala_icono)
 // y de los colores de main.asm (rutina iniciar). Si cambian allí hay que
@@ -938,67 +986,160 @@ NUM_NIVELES = 1
 
 niveles                 .word nivel1
 
-nivel1                  ; Primer nivel
-                        .byte 0,124,112                         ; inicio del jugador: parte, x, y
-                        .byte 2,1                               ; partes: ancho, alto
+nivel1                  ; Nivel pegado (corregido para abrirlo)
+                        .byte 1,124,56                          ; inicio del jugador: parte, x, y
+                        .byte 3,2                               ; partes: ancho, alto
                         ; parte 0 (columna 0, fila 0)
                         .byte 3,$FF,38,2,3                      ; fila 1
-                        .byte 3,$FF,18,0,5,5,$FF,18,0,3         ; fila 2
-                        .byte 3,$FF,18,0,5,5,$FF,18,0,3         ; fila 3
-                        .byte 3,$FF,18,0,5,5,$FF,18,0,3         ; fila 4
-                        .byte 3,$FF,18,0,5,5,$FF,18,0,3         ; fila 5
-                        .byte 3,$FF,18,0,5,5,$FF,18,0,3         ; fila 6
+                        .byte 3,$FF,38,4,3                      ; fila 2
+                        .byte 3,4,$FF,30,2,3,$FF,6,4,3          ; fila 3
+                        .byte 3,4,3,$FF,4,0,5,5,$FF,14,0,5,5,$FF,7,0,3,$FF,6,4,3 ; fila 4
+                        .byte 3,4,3,$FF,4,0,5,5,$FF,14,0,5,5,$FF,7,0,3,$FF,6,4,3 ; fila 5
+                        .byte 3,4,3,$FF,4,0,5,5,$FF,14,0,5,5,$FF,7,0,3,$FF,6,4,3 ; fila 6
+                        .byte 3,4,3,$FF,4,0,5,5,$FF,14,0,5,5,$FF,7,0,3,$FF,6,4,3 ; fila 7
+                        .byte 3,4,3,$FF,4,0,$FF,20,2,3,$FF,4,0,3,$FF,6,4,3 ; fila 8
+                        .byte 3,4,3,$FF,4,0,3,$FF,19,4,3,$FF,4,0,3,$FF,6,2,3 ; fila 9
+                        .byte 3,4,3,$FF,4,0,3,$FF,19,4,3,$FF,12,0 ; fila 10
+                        .byte 3,4,3,$FF,4,0,3,$FF,19,4,3,$FF,12,0 ; fila 11
+                        .byte 3,4,3,$FF,4,0,3,$FF,19,4,3,$FF,12,0 ; fila 12
+                        .byte 3,4,3,$FF,4,0,3,$FF,19,4,3,$FF,12,0 ; fila 13
+                        .byte 3,4,3,$FF,4,0,$FF,15,2,3,$FF,4,4,$FF,12,2,3 ; fila 14
+                        .byte 3,4,3,$FF,4,0,5,5,$FF,13,0,3,$FF,16,4,3 ; fila 15
+                        .byte 3,4,3,$FF,4,0,5,5,$FF,13,0,3,$FF,8,4,0,$FF,7,4,3 ; fila 16
+                        .byte 3,4,3,$FF,4,0,5,5,$FF,13,0,3,$FF,6,4,$FF,4,0,$FF,6,4,3 ; fila 17
+                        .byte 3,4,3,$FF,4,0,5,5,$FF,13,0,3,$FF,4,4,$FF,7,0,$FF,5,4,3 ; fila 18
+                        .byte 3,4,$FF,15,2,3,$FF,4,5,3,4,4,$FF,9,0,$FF,5,4,3 ; fila 19
+                        .byte 3,$FF,16,4,3,$FF,4,5,3,4,4,$FF,8,0,$FF,6,4,3 ; fila 20
+                        .byte 3,$FF,16,4,3,$FF,4,0,3,4,4,4,0,0,4,4,0,0,$FF,7,4,3 ; fila 21
+                        .byte 3,$FF,16,4,3,$FF,4,0,3,$FF,16,4,3 ; fila 22
+                        .byte 3,$FF,16,2,$FF,6,0,$FF,16,2,3     ; fila 23
+                        ; parte 1 (columna 1, fila 0)
+                        .byte 3,$FF,38,2,3                      ; fila 1
+                        .byte 3,$FF,14,5,4,$FF,8,0,4,$FF,14,5,3 ; fila 2
+                        .byte 3,$FF,14,5,4,$FF,8,0,4,$FF,14,5,3 ; fila 3
+                        .byte 3,$FF,14,5,4,$FF,8,0,4,$FF,14,5,3 ; fila 4
+                        .byte 3,$FF,14,5,4,$FF,8,0,4,$FF,14,5,3 ; fila 5
+                        .byte 3,$FF,14,5,4,$FF,8,0,4,$FF,14,5,3 ; fila 6
+                        .byte 3,$FF,14,5,$FF,10,0,$FF,14,5,3    ; fila 7
+                        .byte 3,$FF,15,5,$FF,8,0,$FF,15,5,3     ; fila 8
+                        .byte 3,0,$FF,36,5,2,2                  ; fila 9
+                        .byte 0,0,$FF,36,5,0,0                  ; fila 10
+                        .byte 0,0,$FF,14,5,4,4,$FF,4,0,4,4,$FF,14,5,0,0 ; fila 11
+                        .byte 0,0,$FF,14,5,4,$FF,6,0,4,$FF,14,5,0,0 ; fila 12
+                        .byte 0,0,$FF,14,5,$FF,8,0,$FF,14,5,0,0 ; fila 13
+                        .byte 3,0,$FF,14,5,$FF,8,0,$FF,14,5,2,2 ; fila 14
+                        .byte 3,$FF,15,5,4,$FF,6,0,4,$FF,15,5,3 ; fila 15
+                        .byte 3,$FF,15,5,4,4,$FF,4,0,4,4,$FF,15,5,3 ; fila 16
+                        .byte 3,$FF,38,5,3                      ; fila 17
+                        .byte 3,$FF,38,5,3                      ; fila 18
+                        .byte 3,$FF,38,5,3                      ; fila 19
+                        .byte 3,$FF,38,5,3                      ; fila 20
+                        .byte 3,$FF,38,5,3                      ; fila 21
+                        .byte 3,$FF,16,5,3,$FF,4,0,3,$FF,16,5,3 ; fila 22
+                        .byte 3,$FF,16,2,$FF,6,0,$FF,16,2,3     ; fila 23
+                        ; parte 2 (columna 2, fila 0)
+                        .byte 3,$FF,38,2,3                      ; fila 1
+                        .byte 3,$FF,38,4,3                      ; fila 2
+                        .byte 3,$FF,38,4,3                      ; fila 3
+                        .byte 3,$FF,28,4,0,$FF,9,4,3            ; fila 4
+                        .byte 3,$FF,27,4,0,0,0,$FF,8,4,3        ; fila 5
+                        .byte 3,$FF,26,4,$FF,7,0,$FF,5,4,3      ; fila 6
+                        .byte 3,$FF,26,4,$FF,7,0,$FF,5,4,3      ; fila 7
+                        .byte 3,$FF,24,4,$FF,10,0,$FF,4,4,3     ; fila 8
+                        .byte $FF,22,2,3,$FF,5,4,$FF,6,0,$FF,5,4,3 ; fila 9
+                        .byte $FF,22,0,3,$FF,6,4,$FF,5,0,$FF,5,4,3 ; fila 10
+                        .byte $FF,22,0,3,$FF,6,4,0,0,$FF,8,4,3  ; fila 11
+                        .byte $FF,22,0,3,$FF,16,4,3             ; fila 12
+                        .byte $FF,22,0,3,$FF,16,4,3             ; fila 13
+                        .byte $FF,17,2,3,$FF,4,0,3,$FF,16,4,3   ; fila 14
+                        .byte 3,$FF,16,4,3,$FF,4,0,3,$FF,16,4,3 ; fila 15
+                        .byte 3,$FF,16,4,3,$FF,4,0,3,$FF,16,4,3 ; fila 16
+                        .byte 3,$FF,16,4,3,$FF,4,0,3,$FF,16,4,3 ; fila 17
+                        .byte 3,$FF,16,4,3,$FF,4,0,3,$FF,16,4,3 ; fila 18
+                        .byte 3,$FF,16,4,3,$FF,4,0,3,$FF,16,4,3 ; fila 19
+                        .byte 3,$FF,16,4,3,$FF,4,0,3,$FF,16,4,3 ; fila 20
+                        .byte 3,$FF,16,4,3,$FF,4,0,3,$FF,16,4,3 ; fila 21
+                        .byte 3,$FF,16,4,3,$FF,4,0,3,$FF,16,4,3 ; fila 22
+                        .byte 3,$FF,16,2,$FF,6,0,$FF,16,2,3     ; fila 23
+                        ; parte 3 (columna 0, fila 1)
+                        .byte 3,$FF,16,2,$FF,6,0,$FF,16,2,3     ; fila 1
+                        .byte 3,$FF,38,0,3                      ; fila 2
+                        .byte 3,$FF,38,0,3                      ; fila 3
+                        .byte 3,$FF,38,0,3                      ; fila 4
+                        .byte 3,$FF,38,0,3                      ; fila 5
+                        .byte 3,$FF,38,0,3                      ; fila 6
                         .byte 3,$FF,38,0,3                      ; fila 7
-                        .byte 3,$FF,4,0,$FF,10,4,$FF,10,0,$FF,10,4,$FF,4,0,3 ; fila 8
+                        .byte 3,$FF,38,0,3                      ; fila 8
                         .byte 3,$FF,38,0,3                      ; fila 9
                         .byte 3,$FF,39,0                        ; fila 10
                         .byte 3,$FF,39,0                        ; fila 11
                         .byte 3,$FF,39,0                        ; fila 12
                         .byte 3,$FF,39,0                        ; fila 13
-                        .byte 3,$FF,38,0,3                      ; fila 14
-                        .byte 3,$FF,4,0,$FF,10,4,$FF,10,0,$FF,10,4,$FF,4,0,3 ; fila 15
+                        .byte 3,$FF,39,0                        ; fila 14
+                        .byte 3,$FF,38,0,3                      ; fila 15
                         .byte 3,$FF,38,0,3                      ; fila 16
-                        .byte 3,$FF,18,0,5,5,$FF,18,0,3         ; fila 17
-                        .byte 3,$FF,18,0,5,5,$FF,18,0,3         ; fila 18
-                        .byte 3,$FF,18,0,5,5,$FF,18,0,3         ; fila 19
-                        .byte 3,$FF,18,0,5,5,$FF,18,0,3         ; fila 20
-                        .byte 3,$FF,18,0,5,5,$FF,18,0,3         ; fila 21
-                        .byte 3,$FF,18,0,5,5,$FF,18,0,3         ; fila 22
+                        .byte 3,$FF,38,0,3                      ; fila 17
+                        .byte 3,$FF,38,0,3                      ; fila 18
+                        .byte 3,$FF,38,0,3                      ; fila 19
+                        .byte 3,$FF,38,0,3                      ; fila 20
+                        .byte 3,$FF,38,0,3                      ; fila 21
+                        .byte 3,$FF,38,0,3                      ; fila 22
                         .byte 3,$FF,38,2,3                      ; fila 23
-                        ; parte 1 (columna 1, fila 0)
-                        .byte 3,$FF,38,2,3                      ; fila 1
-                        .byte 3,$FF,7,0,5,5,$FF,20,0,5,5,$FF,7,0,3 ; fila 2
-                        .byte 3,$FF,7,0,5,5,$FF,20,0,5,5,$FF,7,0,3 ; fila 3
-                        .byte 3,$FF,7,0,5,5,$FF,20,0,5,5,$FF,7,0,3 ; fila 4
-                        .byte 3,$FF,7,0,5,5,$FF,20,0,5,5,$FF,7,0,3 ; fila 5
-                        .byte 3,$FF,7,0,$FF,24,4,$FF,7,0,3      ; fila 6
-                        .byte 3,$FF,7,0,5,5,$FF,14,0,5,5,$FF,13,0,3 ; fila 7
-                        .byte 3,$FF,7,0,5,5,$FF,14,0,5,5,$FF,13,0,3 ; fila 8
-                        .byte 3,$FF,7,0,5,5,$FF,14,0,5,5,$FF,13,0,3 ; fila 9
-                        .byte $FF,8,0,5,5,$FF,29,0,3            ; fila 10
-                        .byte $FF,8,0,5,5,$FF,29,0,3            ; fila 11
-                        .byte $FF,8,0,5,5,$FF,29,0,3            ; fila 12
-                        .byte $FF,8,0,5,5,$FF,29,0,3            ; fila 13
-                        .byte 3,$FF,7,0,5,5,$FF,14,0,5,5,$FF,13,0,3 ; fila 14
-                        .byte 3,$FF,7,0,5,5,$FF,14,0,5,5,$FF,13,0,3 ; fila 15
-                        .byte 3,$FF,7,0,5,5,$FF,14,0,5,5,$FF,13,0,3 ; fila 16
-                        .byte 3,$FF,7,0,$FF,24,4,$FF,7,0,3      ; fila 17
-                        .byte 3,$FF,7,0,5,5,$FF,20,0,5,5,$FF,7,0,3 ; fila 18
-                        .byte 3,$FF,7,0,5,5,$FF,20,0,5,5,$FF,7,0,3 ; fila 19
-                        .byte 3,$FF,7,0,5,5,$FF,20,0,5,5,$FF,7,0,3 ; fila 20
-                        .byte 3,$FF,7,0,5,5,$FF,20,0,5,5,$FF,7,0,3 ; fila 21
-                        .byte 3,$FF,7,0,5,5,$FF,20,0,5,5,$FF,7,0,3 ; fila 22
+                        ; parte 4 (columna 1, fila 1)
+                        .byte 3,$FF,16,2,$FF,6,0,$FF,16,2,3     ; fila 1
+                        .byte 3,$FF,38,0,3                      ; fila 2
+                        .byte 3,$FF,38,0,3                      ; fila 3
+                        .byte 3,$FF,38,0,3                      ; fila 4
+                        .byte 3,$FF,38,0,3                      ; fila 5
+                        .byte 3,$FF,38,0,3                      ; fila 6
+                        .byte 3,$FF,38,0,3                      ; fila 7
+                        .byte 3,$FF,38,0,3                      ; fila 8
+                        .byte 3,$FF,38,0,3                      ; fila 9
+                        .byte $FF,40,0                          ; fila 10
+                        .byte $FF,40,0                          ; fila 11
+                        .byte $FF,40,0                          ; fila 12
+                        .byte $FF,40,0                          ; fila 13
+                        .byte $FF,40,0                          ; fila 14
+                        .byte 3,$FF,38,0,3                      ; fila 15
+                        .byte 3,$FF,38,0,3                      ; fila 16
+                        .byte 3,$FF,38,0,3                      ; fila 17
+                        .byte 3,$FF,38,0,3                      ; fila 18
+                        .byte 3,$FF,38,0,3                      ; fila 19
+                        .byte 3,$FF,38,0,3                      ; fila 20
+                        .byte 3,$FF,38,0,3                      ; fila 21
+                        .byte 3,$FF,38,0,3                      ; fila 22
                         .byte 3,$FF,38,2,3                      ; fila 23
-                        .byte 5,9                               ; robots, celulas
-                        .byte 0,8,4,6,2,16,$9C,1,0,18,1,7       ; robot 0
-                        .byte 0,30,18,2,6,16,$C0,1,21,39,16,23  ; robot 1
-                        .byte 1,12,3,6,2,24,$9C,2,0,39,1,5      ; robot 2
-                        .byte 1,16,11,3,0,4,$C0,1,10,23,7,16    ; robot 3
-                        .byte 1,12,19,6,2,16,$9C,1,6,19,15,23   ; robot 4
-                        .byte 0,3,3,0,35,3,0,3,20,0,35,20,0,9,11,0,29,11,1,34,3,1,34,20,1,28,11 ; celulas (parte, x, y)
+                        ; parte 5 (columna 2, fila 1)
+                        .byte 3,$FF,16,2,$FF,6,0,$FF,16,2,3     ; fila 1
+                        .byte 3,$FF,38,0,3                      ; fila 2
+                        .byte 3,$FF,38,0,3                      ; fila 3
+                        .byte 3,$FF,38,0,3                      ; fila 4
+                        .byte 3,$FF,38,0,3                      ; fila 5
+                        .byte 3,$FF,38,0,3                      ; fila 6
+                        .byte 3,$FF,38,0,3                      ; fila 7
+                        .byte 3,$FF,38,0,3                      ; fila 8
+                        .byte 3,$FF,38,0,3                      ; fila 9
+                        .byte $FF,39,0,3                        ; fila 10
+                        .byte $FF,39,0,3                        ; fila 11
+                        .byte $FF,39,0,3                        ; fila 12
+                        .byte $FF,39,0,3                        ; fila 13
+                        .byte $FF,39,0,3                        ; fila 14
+                        .byte 3,$FF,38,0,3                      ; fila 15
+                        .byte 3,$FF,38,0,3                      ; fila 16
+                        .byte 3,$FF,38,0,3                      ; fila 17
+                        .byte 3,$FF,38,0,3                      ; fila 18
+                        .byte 3,$FF,38,0,3                      ; fila 19
+                        .byte 3,$FF,38,0,3                      ; fila 20
+                        .byte 3,$FF,38,0,3                      ; fila 21
+                        .byte 3,$FF,38,0,3                      ; fila 22
+                        .byte 3,$FF,38,2,3                      ; fila 23
+                        .byte 2,5                               ; robots, celulas
+                        .byte 2,30,7,6,2,16,$9C,1,24,37,3,12    ; robot 0
+                        .byte 0,29,18,6,2,16,$9C,1,23,36,14,23  ; robot 1
+                        .byte 1,19,13,2,8,11,2,19,18,0,29,5,0,19,16 ; celulas (parte, x, y)
                         .byte $FF,0,0                           ; sin salida
 `;
-const PRESUPUESTO = 0xBC00 - 0x9100;   // ZONA_NIVELES-ZONA_NIVELES_FIN (hardware.asm): 11008 bytes solo para niveles
+const PRESUPUESTO = 0xBC00 - 0x7100 - 2903;   // ZONA_NIVELES_FIN - ZONA_NIVELES (hardware.asm) - kaiju_titulo.lz: 16297 bytes para niveles
 const NTILES = [0, 2, 3, 4, 5, ...Array.from({ length: 14 }, (_, i) => 6 + i), 0x34, 0x35, 0x36, 0x37, 0x38];
 const NOMBRE_TILE = { 0:'Vacío (borra)', 2:'Borde horizontal: lastima al chocarlo', 3:'Borde vertical / esquina: lastima al chocarlo',
   4:'Muro', 5:'Bloque azul: se rompe a tiros (+1 punto)' };
@@ -1397,6 +1538,8 @@ function pintarTiles() {
 }
 
 // --- propiedades del robot elegido ---
+// un ? con su pista (ver .q en los estilos)
+const pista = t => ` <span class="q izq" tabindex="0" role="note" aria-label="Ayuda: ${t}" data-ayuda="${t}">?</span>`;
 function pintarFormRobot() {
   const cont = document.getElementById('nrobot'), r = nivelAct().robots[nRob];
   if (!r) { cont.innerHTML = '<p class="ayuda" style="font-size:12px">Con la herramienta <b>Robot</b> haz clic en uno para elegirlo (o en un lugar vacío para poner uno nuevo).</p>'; return; }
@@ -1404,13 +1547,13 @@ function pintarFormRobot() {
   const n = (k, min, max) => `<input type="number" data-k="${k}" min="${min}" max="${max}" value="${r[k]}">`;
   cont.innerHTML = `<table>
     <tr><td>Robot</td><td><b>${nRob}</b> en (${r.x}, ${r.y})${nivelAct().partes.length > 1 ? ', parte ' + r.parte : ''}</td></tr>
-    <tr><td>Tipo</td><td><select data-k="clase">${TIPOS_ROBOT.map(([v, t]) =>
+    <tr><td>Tipo${pista('Rojo y verde persiguen al jugador cuando lo descubren. Los tiradores le disparan desde lejos.')}</td><td><select data-k="clase">${TIPOS_ROBOT.map(([v, t]) =>
       `<option value="${v}"${r.clase === v ? ' selected' : ''}>${t}</option>`).join('')}</select></td></tr>
-    <tr><td>Vida</td><td>${n('vida', 1, 9)} disparos</td></tr>
-    <tr><td>Patrulla</td><td><select data-k="dira">${dirs(r.dira)}</select></td></tr>
+    <tr><td>Vida${pista('Cuántos disparos aguanta antes de explotar.')}</td><td>${n('vida', 1, 9)} disparos</td></tr>
+    <tr><td>Patrulla${pista('Hacia dónde camina mientras no descubre al jugador: la 1ª dirección y después la 2ª, y vuelve a empezar.')}</td><td><select data-k="dira">${dirs(r.dira)}</select></td></tr>
     <tr><td>y después</td><td><select data-k="dirb">${dirs(r.dirb)}</select></td></tr>
-    <tr><td>Pasos</td><td>${n('pasos', 0, 254)} <small class="ayuda">(0 = siempre la 1ª)</small></td></tr>
-    <tr><td>Zona cols.</td><td>${n('zx0', 0, 255)} a ${n('zx1', 0, 255)}</td></tr>
+    <tr><td>Pasos${pista('Cuánto dura una vuelta de la patrulla: la mitad en cada dirección.')}</td><td>${n('pasos', 0, 254)} <small class="ayuda">(0 = siempre la 1ª)</small></td></tr>
+    <tr><td>Zona cols.${pista('El rectángulo amarillo del mapa: si el jugador entra ahí, el robot lo descubre y lo persigue para siempre.')}</td><td>${n('zx0', 0, 255)} a ${n('zx1', 0, 255)}</td></tr>
     <tr><td>Zona filas</td><td>${n('zy0', 0, 255)} a ${n('zy1', 0, 255)}</td></tr></table>
     <div class="grupo" style="margin-top:6px"><button data-z="toda">Zona: toda</button><button data-z="nunca">Nunca persigue</button>
       <button data-z="dibujar">Dibujar zona</button><button data-z="borrar">Borrar robot</button></div>

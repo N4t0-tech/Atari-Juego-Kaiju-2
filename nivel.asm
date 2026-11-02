@@ -5,7 +5,7 @@
 ; Coordenadas: la fila r ocupa las lineas 32+8r a 39+8r y la columna c los
 ; HPOS 48+4c a 51+4c (un caracter de ANTIC 4 = 4 x 8).
 ; Titulo (DLIST_T): imagen de Kaiju en ANTIC E (196 lineas, en dos bloques de
-; 4 KB, kaiju_titulo.asm) y una linea de texto en ANTIC 7.
+; 4 KB, kaiju_titulo.asm; descomprimida en MAPAS) y una linea de texto en ANTIC 7.
 
 ; arma la fuente y las dos listas de pantalla
 iniciar_pantalla
@@ -156,6 +156,7 @@ modo_texto
 
 ; pantalla de titulo
 modo_titulo
+        jsr descomprimir_titulo ; MAPAS se vuelve a llenar en cargar_etapa
         jsr limpiar_pmg
         lda #<DLIST_T
         ldx #>DLIST_T
@@ -169,6 +170,64 @@ modo_titulo
         lda #KAIJU_TITULO_COLOR2
         sta COLOR2
         rts
+
+; descomprime kaiju_titulo_z en kaiju_titulo1 (formato en comprimir_titulo.py):
+; ficha $00-$7F = t+1 literales; $80-$FE = copiar t-$7D bytes desde d+1 atras
+; (d = byte siguiente); $FF = fin. Usa ptr (origen), ptr2 (destino), ptr3 (copia)
+descomprimir_titulo
+        lda #<kaiju_titulo_z
+        sta ptr
+        lda #>kaiju_titulo_z
+        sta ptr+1
+        lda #<kaiju_titulo1
+        sta ptr2
+        lda #>kaiju_titulo1
+        sta ptr2+1
+        ldy #0
+dt_ficha
+        jsr dt_leer
+        cmp #$FF
+        beq dt_fin
+        cmp #$80
+        bcs dt_copia
+        tax             ; literales: t+1
+        inx
+dt_lit  jsr dt_leer
+        jsr dt_poner
+        dex
+        bne dt_lit
+        beq dt_ficha
+dt_copia
+        sbc #$7D        ; C = 1: largo 3..129
+        tax
+        jsr dt_leer     ; ptr3 = ptr2 - (d+1) = ptr2 + ($FF00 | not d)
+        eor #$FF
+        clc
+        adc ptr2
+        sta ptr3
+        lda ptr2+1
+        adc #$FF
+        sta ptr3+1
+dt_cop  lda (ptr3),y
+        inc ptr3
+        bne dt_c1
+        inc ptr3+1
+dt_c1   jsr dt_poner
+        dex
+        bne dt_cop
+        beq dt_ficha
+dt_fin  rts
+dt_leer lda (ptr),y     ; A = siguiente byte comprimido (Y = 0)
+        inc ptr
+        bne dt_l1
+        inc ptr+1
+dt_l1   rts
+dt_poner
+        sta (ptr2),y
+        inc ptr2
+        bne dt_p1
+        inc ptr2+1
+dt_p1   rts
 
 ; borra los 2 KB de los sprites (jugadores, balas, todo)
 limpiar_pmg
