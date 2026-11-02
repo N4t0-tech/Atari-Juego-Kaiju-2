@@ -75,6 +75,7 @@
   .nparte canvas { width:100%; height:auto; border:2px solid var(--borde); border-radius:4px; image-rendering:pixelated; }
   .nparte.sel canvas { border-color:var(--acento); }
   .nparte.sel { color:var(--texto); }
+  .nparte.sobre canvas { border-color:var(--texto); border-style:dashed; }
   #ntiles { display:flex; flex-wrap:wrap; gap:4px; }
   #ntiles canvas { width:32px; height:32px; border:2px solid var(--borde); border-radius:4px; cursor:pointer; background:#000; }
   #ntiles canvas.sel { border-color:var(--acento); }
@@ -187,7 +188,7 @@ Al terminar pulsa <strong>Exportar</strong> y pásame el texto: yo actualizo <co
       <div class="grupo" style="margin-top:8px"><button id="nprobar">▶ Probar en la escena</button></div>
       <p id="nmemoria" class="ayuda" style="font-size:12px"></p>
     </div>
-    <div style="flex:1; min-width:320px; max-width:960px">
+    <div style="flex:1; min-width:320px">
       <div class="grupo" id="nherr">
         <button data-nh="bloque" title="Pintar bloques">✏️ Bloques</button>
         <button data-nh="rect" title="Rectángulo lleno de bloques">▭ Rectángulo</button>
@@ -1294,6 +1295,12 @@ function pintarPartes() {
     if (N.parteIni === p) { cx.fillStyle = '#4fc3d9'; cx.fillRect(N.px - 48, (N.py - 32) / 2 - 4, 8, 12); }
     d.appendChild(cv); d.appendChild(document.createTextNode(`parte ${p}` + (N.parteIni === p ? ' · inicio' : '') + (N.salida && N.salida.parte === p ? ' · salida' : '')));
     d.addEventListener('click', () => { nParte = p; nRob = -1; nRefrescar(); });
+    // arrastrar una miniatura sobre otra intercambia las dos partes
+    d.draggable = N.partes.length > 1;
+    d.addEventListener('dragstart', e => e.dataTransfer.setData('text/plain', p));
+    d.addEventListener('dragover', e => { e.preventDefault(); d.classList.add('sobre'); });
+    d.addEventListener('dragleave', () => d.classList.remove('sobre'));
+    d.addEventListener('drop', e => { e.preventDefault(); d.classList.remove('sobre'); intercambiarPartes(+e.dataTransfer.getData('text/plain'), p); });
     cont.appendChild(d);
   });
   const sa = document.getElementById('nancho'), sl = document.getElementById('nalto');
@@ -1301,6 +1308,16 @@ function pintarPartes() {
   sa.value = N.ancho; sl.value = N.alto;
   [...sa.options].forEach(o => o.disabled = +o.value * N.alto > MAXPARTES);
   [...sl.options].forEach(o => o.disabled = +o.value * N.ancho > MAXPARTES);
+}
+function intercambiarPartes(a, b) {
+  const N = nivelAct();
+  if (a === b || !(a >= 0 && a < N.partes.length)) return;
+  const sw = q => q === a ? b : q === b ? a : q;
+  nOperacion(() => {
+    [N.partes[a], N.partes[b]] = [N.partes[b], N.partes[a]];
+    [...N.robots, ...N.celulas, ...(N.salida ? [N.salida] : [])].forEach(o => o.parte = sw(o.parte));
+    N.parteIni = sw(N.parteIni); nParte = sw(nParte); nRob = -1;
+  });
 }
 // cambia la cuadrícula a W x H: las partes que siguen entrando conservan su lugar
 function redimensionar(W, H) {
