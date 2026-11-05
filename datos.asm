@@ -212,6 +212,8 @@ cel_parte :MAXCEL .byte 0       ; parte del nivel donde esta
 cel_x   :MAXCEL .byte 0
 cel_y   :MAXCEL .byte 0
 cel_viva :MAXCEL .byte 0
+cel_expl .byte 0        ; celula que exploto al dispararle ($FF = ninguna)
+ecuenta .byte 0         ; contador de las animaciones explotar_celula y celebrar
 
 ; direcciones de Kaiju (medidas en el original): desplazamiento en casillas
 ; 0 arr-izq, 1 arr, 2 izq, 3 aba-izq, 4 aba-der, 5 aba, 6 der, 7 arr-der, 8 quieto
@@ -227,9 +229,10 @@ SND_GOLPE   = 2
 SND_TIRO    = 3
 SND_EXPLOSION = 4       ; ruido que va bajando
 SND_IMPACTO = 5         ; robot herido: zumbido que va subiendo
-snd_base .byte 20,60,40,90,30,50
-snd_paso .byte 6,$FC,12,$FA,24,$F8
-snd_dist .byte $A0,$A0,$80,$A0,$80,$C0  ; $A = tono puro, $8 = ruido
+SND_VICTORIA = 6        ; nivel superado: tono que va subiendo
+snd_base .byte 20,60,40,90,30,50,120
+snd_paso .byte 6,$FC,12,$FA,24,$F8,$F4
+snd_dist .byte $A0,$A0,$80,$A0,$80,$C0,$A0  ; $A = tono puro, $8 = ruido
 
 txt_level .byte $28,$29,$2A,$29,$28     ; "LEVEL" con la fuente de Kaiju
 hud_dirty .byte 1       ; 1 = hay que redibujar el HUD

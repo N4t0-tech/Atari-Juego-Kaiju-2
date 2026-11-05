@@ -70,6 +70,7 @@ bal_cel and #$7F
         ldx jugador       ; celula: fin de la etapa (se repite) y
         inx               ; pierde energia el que disparo
         stx fin
+        jsr romper_celula
         jmp matar
 bal_rob cmp #$34
         bcc bal_gol

@@ -13,6 +13,7 @@
 ;   enemigos.asm  robots enemigos, contactos con el jugador
 ;   balaenemiga.asm  tiradores: disparos de los robots (players 2 y 3)
 ;   celulas.asm   celulas (objetos a recoger)
+;   animaciones.asm  celula destruida y nivel superado (en la zona de niveles)
 ;   partes.asm    niveles de varias partes (pantallas)
 ;   etapas.asm    titulo, etapas y mensajes
 ;   datos.asm     variables y graficos del sprite
@@ -97,6 +98,7 @@ loop
         lda celrest
         bne loop
 superado ; nivel superado
+        jsr celebrar
         inc etapa
         lda etapa
         cmp #NUM_NIVELES
@@ -108,6 +110,8 @@ superado ; nivel superado
         jmp partida
 fallo   ; se disparo a una celula: -1 de energia a quien disparo (fin = jugador
         ; + 1) y se repite el nivel
+        jsr explotar_celula
+        lda fin
         ldx #0
         cmp #1
         beq fa_j1
@@ -249,7 +253,14 @@ MAPAS   = *
         ; titulo comprimido y niveles, en su propio bloque (RAM del BASIC, ver apagar_basic)
         org ZONA_NIVELES
         icl "kaiju_titulo.asm"
+        icl "animaciones.asm"   ; codigo que no corre en cada frame
         icl "niveles.asm"       ; generado con editor-sprite.html (panel Niveles)
+
+        ; titulo + animaciones: tiene que coincidir con PRESUPUESTO en el editor
+ANTES_NIVELES = 3273
+        .if NIVELES <> ZONA_NIVELES + ANTES_NIVELES
+        .error "Cambio lo que va antes de los niveles: actualizar ANTES_NIVELES y PRESUPUESTO (editor-sprite.html)"
+        .endif
 
         .if NUM_NIVELES < 1 || NUM_NIVELES > 99
         .error "NUM_NIVELES tiene que estar entre 1 y 99"

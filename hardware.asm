@@ -53,6 +53,7 @@ PORTB   = $D301         ; XL/XE: bit 1 = 1 apaga el BASIC (bit 0 = ROM del OS)
 ; --- POKEY (sonido) ---
 AUDF1   = $D200         ; canal 1: frecuencia (valor mayor = tono mas grave)
 AUDC1   = $D201         ; canal 1: distorsion (4 bits altos) y volumen (bajos)
+RANDOM  = $D20A         ; numero al azar (lectura)
 
 ; --- pagina cero ($CB-$D1 libres para programas de usuario) ---
 ptr     = $CB           ; puntero de 2 bytes (pose del jugador, nivel)
