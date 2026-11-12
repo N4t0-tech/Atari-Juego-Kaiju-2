@@ -284,22 +284,22 @@ dl_fin
 ; caracteres del tirador (ANTIC 4, 2 x 2 como los otros robots), copiados a
 ; FUENTE desde el codigo $40: $40-$43 mirando a la izquierda, $44-$47 su
 ; 2a fase, $50-$57 lo mismo mirando a la derecha (dibujar_robot suma $10/4)
-fuente_tirador          .byte $0F,$3F,$35,$36,$35,$0F,$03,$AF   ; $40 izq. fase 0
-                        .byte $F0,$FC,$5C,$9C,$5C,$F0,$C0,$FF   ; $41 izq. fase 0
-                        .byte $AF,$03,$3F,$33,$33,$3F,$30,$F0   ; $42 izq. fase 0
-                        .byte $FF,$C3,$FC,$CC,$CC,$FC,$0C,$0F   ; $43 izq. fase 0
-                        .byte $0F,$3F,$35,$35,$35,$0F,$03,$2F   ; $44 izq. fase 1
-                        .byte $F0,$FC,$5C,$AC,$5C,$F0,$C0,$FF   ; $45 izq. fase 1
-                        .byte $2F,$03,$3F,$33,$33,$3F,$C0,$C0   ; $46 izq. fase 1
-                        .byte $FF,$C3,$FC,$CC,$CC,$FC,$03,$03   ; $47 izq. fase 1
-                        .byte $0F,$3F,$35,$36,$35,$0F,$03,$FF   ; $50 der. fase 0
-                        .byte $F0,$FC,$5C,$9C,$5C,$F0,$C0,$FA   ; $51 der. fase 0
-                        .byte $FF,$C3,$3F,$33,$33,$3F,$30,$F0   ; $52 der. fase 0
-                        .byte $FA,$C0,$FC,$CC,$CC,$FC,$0C,$0F   ; $53 der. fase 0
-                        .byte $0F,$3F,$35,$3A,$35,$0F,$03,$FF   ; $54 der. fase 1
-                        .byte $F0,$FC,$5C,$5C,$5C,$F0,$C0,$F8   ; $55 der. fase 1
-                        .byte $FF,$C3,$3F,$33,$33,$3F,$C0,$C0   ; $56 der. fase 1
-                        .byte $F8,$C0,$FC,$CC,$CC,$FC,$03,$03   ; $57 der. fase 1
+fuente_tirador          .byte $0A,$2A,$AB,$AA,$AA,$0A,$02,$0A   ; $40 izq. fase 0
+                        .byte $80,$88,$88,$88,$8A,$0A,$2A,$AA   ; $41 izq. fase 0
+                        .byte $2A,$8A,$0A,$0A,$08,$28,$A8,$00   ; $42 izq. fase 0
+                        .byte $A8,$A8,$A0,$20,$28,$28,$08,$2A   ; $43 izq. fase 0
+                        .byte $0A,$2A,$AB,$0A,$AA,$2A,$0A,$02   ; $44 izq. fase 1
+                        .byte $80,$82,$82,$82,$8A,$0A,$2A,$A8   ; $45 izq. fase 1
+                        .byte $8A,$2A,$0A,$0A,$02,$02,$0A,$2A   ; $46 izq. fase 1
+                        .byte $A8,$A8,$A0,$A8,$28,$08,$2A,$00   ; $47 izq. fase 1
+                        .byte $02,$22,$22,$A2,$A2,$A0,$A8,$2A   ; $50 der. fase 0
+                        .byte $A0,$A8,$EA,$AA,$AA,$A0,$80,$A0   ; $51 der. fase 0
+                        .byte $2A,$0A,$0A,$28,$28,$28,$20,$A8   ; $52 der. fase 0
+                        .byte $A8,$A2,$A0,$A0,$20,$28,$2A,$00   ; $53 der. fase 0
+                        .byte $02,$82,$82,$82,$A2,$A0,$A8,$2A   ; $54 der. fase 1
+                        .byte $A0,$A8,$EA,$A0,$AA,$A8,$A0,$80   ; $55 der. fase 1
+                        .byte $2A,$0A,$2A,$28,$20,$20,$A8,$00   ; $56 der. fase 1
+                        .byte $A2,$A8,$A0,$A0,$80,$80,$A0,$A8   ; $57 der. fase 1
 
 ; explosion de un robot destruido (enemigos.asm): 2 x 2 caracteres en
 ; EXPLO..EXPLO+3 (fase 0) y +4..+7 (fase 1), dibujados en inverso (pixel 11 =

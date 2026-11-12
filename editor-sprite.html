@@ -102,6 +102,18 @@
   #nrobot input[type=number] { width:4.2em; }
   #navisos { margin:0; padding-left:18px; font-size:12px; color:#f0c674; }
   #navisos li.ok { color:#8ef08e; list-style:none; margin-left:-18px; }
+
+  /* pestañas */
+  #tabs { position:sticky; top:0; z-index:5; background:var(--fondo); display:flex; gap:6px; flex-wrap:wrap;
+          padding:10px 0; margin-top:8px; border-bottom:1px solid var(--borde); }
+  #tabs button { padding:7px 14px; }
+  section.tab:not(.on) { display:none; }
+  .entrega { background:#1f2d1f; border:1px solid #3d6b3d; border-radius:8px; padding:10px 14px; margin-top:10px; max-width:75em; }
+  .entrega h2 { color:#8ef08e; margin-bottom:6px; }
+  .entrega ol { margin:4px 0; padding-left:22px; }
+  .entrega li { margin:4px 0; }
+  .nota { background:#1f2d1f; border-left:4px solid #3d6b3d; padding:6px 10px; margin:8px 0; max-width:75em; }
+  #aescena { width:100%; max-width:720px; height:auto; border:1px solid var(--borde); border-radius:4px; background:#000; }
 </style>
 </head>
 <body>
@@ -110,12 +122,34 @@
 Pinta con el botón izquierdo; el derecho borra. Elige el color en las casillas de abajo (<kbd>1</kbd>–<kbd>4</kbd>),
 la herramienta con <kbd>B</kbd> lápiz · <kbd>E</kbd> goma · <kbd>G</kbd> relleno, y deshaz con <kbd>Ctrl</kbd>+<kbd>Z</kbd>
 (rehacer <kbd>Ctrl</kbd>+<kbd>Y</kbd>). Los colores son los 128 del Atari (aproximados, NTSC).
-Al terminar pulsa <strong>Exportar</strong> y pásame el texto: yo actualizo <code>datos.asm</code> y los colores de
-<code>main.asm</code>, y regenero el juego. Tu trabajo se guarda solo en este navegador.
+Arriba eliges qué editar con las pestañas.
 </p>
+<div class="entrega">
+  <h2>📦 Cómo entregar tu trabajo al programador</h2>
+  <p>Hay <b>dos archivos distintos</b> para entregar, uno por cada tipo de trabajo. Envía solo el que corresponda a lo que cambiaste
+    (o los dos):</p>
+  <ol>
+    <li><b>Niveles</b> (mapas, robots, células, salida): pestaña <b>🗺️ Niveles</b> → abajo del todo → <b>💾 Descargar niveles.asm</b>.
+      Envía ese archivo.</li>
+    <li><b>Dibujos y colores</b> (jugador, bala, fondo, enemigos y sus animaciones): pestaña <b>📤 Exportar / Importar</b> →
+      <b>💾 Descargar dibujos</b>. Envía ese archivo (<code>dibujos-kaiju.txt</code>).</li>
+  </ol>
+  <p style="margin:0">⚠️ Todo se guarda solo en <b>este navegador de esta computadora</b>. Si cambias de computadora o de navegador,
+    o borras los datos de navegación, se pierde lo que no hayas descargado.</p>
+</div>
 <div id="aviso">Se recuperó un borrador guardado de una sesión anterior.
   <button id="descartar">Descartar y cargar el del juego</button></div>
 
+<nav id="tabs">
+  <button data-tab="jugador">🤖 Jugador</button>
+  <button data-tab="enemigos">👾 Enemigos</button>
+  <button data-tab="animacion">🎞️ Animación de enemigos</button>
+  <button data-tab="niveles">🗺️ Niveles</button>
+  <button data-tab="prueba">▶ Prueba</button>
+  <button data-tab="exportar">📤 Exportar / Importar</button>
+</nav>
+
+<section class="tab" data-tab="jugador">
 <!-- ============ KAIJU ============ -->
 <div class="panel">
   <h2>Kaiju · poses 8 × 24 · <span id="kjtit">Player 0 + Player 1</span> (resolución de 1 línea) <span class="q" data-ayuda="El robot que maneja el jugador. Tiene 6 poses de 8 × 24 píxeles.
@@ -131,7 +165,7 @@ Jugador 2: solo cambias sus colores; usa las mismas poses del jugador 1.">?</spa
     <li>Pinta en la cuadrícula con el botón izquierdo; el derecho borra.</li>
     <li>Mira el resultado en <b>Animación</b>.</li>
     <li>Para cambiar los colores del jugador 2, pulsa <b>Jugador 2</b> (sus poses son las mismas del jugador 1).</li>
-    <li>Al terminar, pulsa <b>Exportar</b> (al final de la página) y pásame el texto.</li></ol></details>
+    <li>Para entregarlo: pestaña <b>📤 Exportar / Importar</b> → <b>💾 Descargar dibujos</b>, y envía el archivo al programador.</li></ol></details>
   <p class="ayuda">Las poses de <code>kaiju_graficos.asm</code>. Cada fila es una sola línea de pantalla,
     por eso los píxeles son el doble de anchos que de altos. El juego original siempre usaba la mezcla
     (<code>GPRIOR = $31</code>): pintar en las dos capas da el 3er color. El jugador 2 (cooperativo) usa
@@ -187,15 +221,111 @@ Limpiar: la borra entera.">?</span>
     <div class="slots" style="flex-direction:column" id="slot_pant"></div>
   </div>
 </div>
+</section>
+
+<section class="tab" data-tab="enemigos">
+<!-- ============ ENEMIGOS ============ -->
+<div class="panel">
+  <h2>Enemigos · 2 × 2 caracteres ANTIC 4 (8 × 16 píxeles) <span class="q" data-ayuda="Los robots del nivel no son sprites: son 4 caracteres de la fuente (2 × 2) que el juego escribe en la pantalla.
+Cada píxel es el doble de ancho que de alto y puede ser de 4 colores: el fondo, COLOR0 y COLOR1 (los mismos de los bloques) y COLOR2, que pasa a ser COLOR3 (rojo) en los robots en inverso.">?</span></h2>
+  <details class="guia"><summary>Paso a paso: cambiar un enemigo</summary><ol>
+    <li>Elige el enemigo: <b>Robot</b>, <b>Tirador</b> o <b>Explosión</b>.</li>
+    <li>Elige el cuadro en <b>Cuadro que editas</b>: cada enemigo tiene 2 pasos (A y B) mirando a la izquierda y 2 mirando a la derecha.</li>
+    <li>Pinta con el color elegido (<kbd>1</kbd>–<kbd>4</kbd>); el botón derecho borra.</li>
+    <li>Si dibujaste solo los de la izquierda, <b>⇋ Hacer los de la derecha</b> los copia dados vuelta.</li>
+    <li>Mira cómo se mueve en la pestaña <b>Animación de enemigos</b>.</li>
+    <li>Para entregarlo: pestaña <b>📤 Exportar / Importar</b> → <b>💾 Descargar dibujos</b>, y envía el archivo al programador.</li></ol></details>
+  <p class="ayuda">Robot = caracteres <code>$1C-$23</code> y <code>$2C-$33</code> de <code>kaiju_fuente</code> (kaiju_graficos.asm);
+    tirador = <code>fuente_tirador</code> y explosión = <code>fuente_explosion</code> (datos.asm). Las líneas más marcadas separan los 4 caracteres.</p>
+  <div class="grupo" id="etipos"></div>
+  <div class="fila">
+    <div>
+      <div class="grupo">
+        <button data-h="lapiz" title="Lápiz (B)">✏️ Lápiz</button>
+        <button data-h="goma" title="Goma (E)">🧽 Goma</button>
+        <button data-h="relleno" title="Relleno (G)">🪣 Relleno</button>
+        <button data-deshacer title="Ctrl+Z">↶ Deshacer</button>
+        <button data-rehacer title="Ctrl+Y">↷ Rehacer</button>
+      </div>
+      <canvas id="genem" class="rejilla"></canvas>
+      <div class="grupo" style="margin-top:8px">
+        <button data-eop="izq">←</button><button data-eop="der">→</button>
+        <button data-eop="arr">↑</button><button data-eop="aba">↓</button>
+        <button data-eop="espejoH">⇋ Espejo</button><button data-eop="espejoV">⇵ Voltear</button>
+        <button data-eop="limpiar">Limpiar</button> <span class="q" data-ayuda="Flechas: corren el cuadro un píxel.
+Espejo: lo da vuelta de izquierda a derecha.
+Voltear: de arriba a abajo.
+Limpiar: lo borra entero.">?</span>
+      </div>
+      <div class="grupo"><select id="ecopiar"></select><button id="ecopiarbtn">Copiar este cuadro ahí</button>
+        <button id="eespejar">⇋ Hacer los de la derecha</button> <span class="q" data-ayuda="Copiar: pone el cuadro que editas encima del que elijas.
+Hacer los de la derecha: Der. A y Der. B pasan a ser Izq. A e Izq. B dados vuelta.">?</span></div>
+    </div>
+    <div style="flex:1; min-width:280px">
+      <h3>Cuadro que editas <span class="q" data-ayuda="El juego alterna A y B cada vez que mueve a los robots. Usa los de la izquierda cuando el robot va hacia la izquierda (el tirador patrullando también; alertado, mira siempre al jugador).">?</span></h3>
+      <div class="frames" id="eframes" style="flex-wrap:wrap"></div>
+      <h3>Colores <span class="q" data-ayuda="Haz clic en un color para pintar con él, o pulsa 1-4. COLOR0-2 son los mismos de los bloques del nivel: no se cambian aquí. El rojo (COLOR3) es el de la bala.">?</span></h3>
+      <div class="slots" id="eslots"></div>
+      <div class="grupo" style="margin-top:8px">
+        <label><input type="checkbox" id="einv"> Ver en inverso (rojo)</label>
+        <label><input type="checkbox" id="ecalco" checked> Calco del otro paso</label> <span class="q" data-ayuda="Inverso: así se ven los robots de tipo $9C / $C0 y la explosión: el 4º color es COLOR3 en vez de COLOR2.
+Calco: muestra transparente el otro paso (A o B) del mismo lado, para que la animación calce.">?</span>
+      </div>
+      <h3>Tamaño real <span class="q" data-ayuda="Normal e inverso, como en la pantalla del juego (x3).">?</span></h3>
+      <canvas id="eprev"></canvas>
+    </div>
+  </div>
+</div>
+</section>
+
+<section class="tab" data-tab="animacion">
+<!-- ============ ANIMACIÓN DE ENEMIGOS ============ -->
+<div class="panel">
+  <h2>Animación de enemigos <span class="q" data-ayuda="Reproduce a los enemigos con los mismos tiempos del juego. Haz clic en un cuadro de abajo para pausar y editarlo aquí mismo; los cambios son los mismos de la pestaña Enemigos.">?</span></h2>
+  <details class="guia"><summary>Paso a paso: ajustar la animación</summary><ol>
+    <li>Elige el enemigo y la escena: <b>Patrulla</b> (camina), <b>Herido</b> (parpadea al recibir un disparo) o <b>Explosión</b>.</li>
+    <li>Baja la velocidad o usa <b>Siguiente cambio ▸</b> para verla cuadro a cuadro.</li>
+    <li>Haz clic en un cuadro de la tira para pausar y editarlo en la cuadrícula de abajo (el otro paso se ve en calco). En <b>Herido</b> queda pausado con los colores cambiados del parpadeo, para que veas cómo queda.</li>
+    <li>Cambia cuánto dura el parpadeo o la explosión con sus casillas de pasos.</li>
+    <li>Para entregarlo: pestaña <b>📤 Exportar / Importar</b> → <b>💾 Descargar dibujos</b>, y envía el archivo al programador.</li>
+    <li>Pulsa <b>▶ Reproducir</b> para verla de nuevo.</li></ol></details>
+  <p class="ayuda">Tiempos del juego: los robots se actualizan cada 11 pasos (22 cuadros, ~0,37 s); en cada una cambian de paso
+    A ↔ B y cada 2 se mueven una casilla. Herido: 8 pasos cambiando el inverso. Explosión: 12 pasos, a la mitad pasa a la fase 1.
+    Solo hay 2 pasos por lado porque así los dibuja <code>dibujar_robot</code>; más cuadros necesitan cambiar el juego.</p>
+  <div class="grupo" style="align-items:center">
+    Enemigo: <select id="aenem"><option value="robot">Robot</option><option value="tirador">Tirador</option></select>
+    Escena: <select id="aesc"><option value="patrulla">Patrulla</option><option value="herido">Herido</option><option value="explosion">Explosión</option></select>
+    Velocidad: <select id="avel"><option value="1">normal</option><option value="0.5">1/2</option><option value="0.25">1/4</option><option value="0.1">1/10</option></select>
+    <label><input type="checkbox" id="ainv"> Inverso (rojo)</label>
+    <button id="aplay">⏸ Pausa</button><button id="apaso">Siguiente cambio ▸</button>
+  </div>
+  <div class="grupo" style="align-items:center">
+    <label>Parpadeo al herirlo: <input type="number" id="agolpe" min="2" max="40" style="width:4.5em"> pasos</label>
+    <label style="margin-left:12px">Explosión: <input type="number" id="aexplo" min="2" max="60" style="width:4.5em"> pasos</label>
+    <span class="q" data-ayuda="Parpadeo (GOLPE_PASOS): cuántos pasos cambia de colores un robot que recibe un disparo y no muere. Mientras dura, alterna normal / inverso de a 2 pasos: usa los mismos cuadros del robot, por eso se editan en la tira de abajo.
+Explosión (EXPLO_PASOS): cuántos pasos dura; a la mitad pasa a la fase 1.
+1 paso = 2 cuadros (1/30 s).">?</span>
+  </div>
+  <canvas id="aescena" width="480" height="144"></canvas>
+  <div id="ainfo" class="ayuda" style="font-size:12px; min-height:1.5em; margin-top:4px"></div>
+  <h3>Cuadros de esta escena <span class="q" data-ayuda="El marcado es el que se ve ahora. Clic = pausar y editarlo abajo.">?</span></h3>
+  <div class="frames" id="aframes" style="flex-wrap:wrap"></div>
+  <div class="fila" style="margin-top:8px">
+    <canvas id="ganim" class="rejilla"></canvas>
+    <div><h3 style="margin-top:0">Colores</h3><div class="slots" id="aslots" style="flex-direction:column"></div></div>
+  </div>
+</div>
+</section>
 
 <!-- ============ NIVELES ============ -->
+<section class="tab" data-tab="niveles">
 <div class="panel" id="pniveles">
   <h2>Niveles · <code>niveles.asm</code></h2>
   <p class="ayuda">Los niveles del juego, en orden. Pinta los bloques con el botón izquierdo (el derecho borra);
     con <strong>Célula</strong> y <strong>Robot</strong> haz clic para ponerlos, arrástralos para moverlos y
     bórralos con el botón derecho. Un nivel puede tener varias partes (pantallas): se pasa de una a otra
-    saliendo por un hueco del borde. Al terminar pulsa <strong>Descargar niveles.asm</strong> y guárdalo en la
-    carpeta del juego (reemplazando el anterior), o pásame el texto de abajo. Deshacer: <kbd>Ctrl</kbd>+<kbd>Z</kbd>
+    saliendo por un hueco del borde. Para entregarlos pulsa <strong>💾 Descargar niveles.asm</strong> (abajo del todo) y envía
+    ese archivo al programador. Deshacer: <kbd>Ctrl</kbd>+<kbd>Z</kbd>
     después de tocar este panel. Tus niveles se guardan solos en este navegador.</p>
   <details class="guia"><summary>Paso a paso: hacer un nivel</summary><ol>
     <li><b>+ Nuevo</b> crea un nivel vacío, con el borde puesto. Ponle un nombre.</li>
@@ -206,7 +336,7 @@ Limpiar: la borra entera.">?</span>
     <li>Pon <b>Células</b>: el nivel se gana recogiéndolas todas, o tocando la <b>Salida</b> si pones una.</li>
     <li>Pon <b>Robots</b> y ajústalos en <b>Robot elegido</b>: su patrulla y su zona de vigilancia.</li>
     <li>Revisa los <b>Avisos</b> y prueba moverte con <b>▶ Probar en la escena</b>.</li>
-    <li>Pulsa <b>💾 Descargar niveles.asm</b> y reemplaza el de la carpeta del juego.</li></ol></details>
+    <li>Para entregarlo: pulsa <b>💾 Descargar niveles.asm</b> (abajo del todo) y envía ese archivo al programador.</li></ol></details>
   <div id="naviso" class="aviso">Se recuperó un borrador de niveles de una sesión anterior.
     <button id="ndescartar">Descartar y cargar los del juego</button></div>
   <div class="fila" style="margin-top:8px">
@@ -264,14 +394,19 @@ Vaciar el mapa: borra toda la parte, con sus células y robots.">?</span>
       <ul id="navisos"></ul>
     </div>
   </div>
-  <h3>niveles.asm <span class="q" data-ayuda="El archivo que usa el juego, generado con todos tus niveles. Descárgalo y reemplaza el de la carpeta del juego, o abre uno para seguir editándolo.">?</span></h3>
+  <h3>Entregar los niveles: niveles.asm <span class="q" data-ayuda="El archivo que usa el juego, generado con todos tus niveles. Descárgalo y envíaselo al programador, o abre uno para seguir editándolo.">?</span></h3>
+  <p class="nota">📦 Para entregar los niveles pulsa <b>💾 Descargar niveles.asm</b> y envía ese archivo al programador.
+    Lleva <b>todos</b> los niveles de la lista. Solo lleva los niveles: los dibujos del jugador y de los enemigos se entregan
+    desde la pestaña <b>📤 Exportar / Importar</b>.</p>
   <div class="grupo"><button id="ndescargar">💾 Descargar niveles.asm</button><button id="ncopiar">Copiar</button>
     <button id="nabrir">Abrir niveles.asm…</button><button id="npegar">Cargar el texto pegado</button></div>
   <input type="file" id="narchivo" accept=".asm" style="display:none">
   <textarea id="nexp" spellcheck="false" title="Puedes pegar aquí un niveles.asm y pulsar «Cargar el texto pegado»"></textarea>
 </div>
+</section>
 
 <!-- ============ ESCENA ============ -->
+<section class="tab" data-tab="prueba">
 <div class="panel">
   <h2>Prueba en la pantalla del juego <span class="q" data-ayuda="Haz clic en la pantalla para jugar: flechas mueven, espacio dispara. Elige el nivel abajo.">?</span></h2>
   <p class="ayuda">Haz clic en la pantalla y juega: <kbd>flechas</kbd> mueven, <kbd>espacio</kbd> dispara.
@@ -285,21 +420,30 @@ Vaciar el mapa: borra toda la parte, con sus células y robots.">?</span>
     <label style="margin-left:12px"><input type="checkbox" id="sonido"> Sonido del disparo</label>
   </div>
 </div>
+</section>
 
 <!-- ============ EXPORTAR / IMPORTAR ============ -->
+<section class="tab" data-tab="exportar">
 <div class="panel">
-  <h2>Exportar <span class="q" data-ayuda="Escribe en el cuadro el código de la bala, los colores y las poses del jugador. Copia ese texto y pásamelo: yo lo pongo en los archivos del juego.
-Los niveles se guardan aparte, con Descargar niveles.asm.">?</span></h2>
-  <div class="grupo"><button id="exportar">Exportar</button><button id="copiar">Copiar</button></div>
+  <h2>Entregar los dibujos y colores <span class="q" data-ayuda="El cuadro tiene, como código para el juego, todo lo de las pestañas Jugador, Enemigos y Animación de enemigos. Se actualiza solo con cada cambio.
+Los niveles NO van aquí: se entregan con Descargar niveles.asm, en la pestaña Niveles.">?</span></h2>
+  <p class="nota">📦 Pulsa <b>💾 Descargar dibujos</b> y envía el archivo <code>dibujos-kaiju.txt</code> al programador.
+    Lleva todo lo de las pestañas <b>🤖 Jugador</b>, <b>👾 Enemigos</b> y <b>🎞️ Animación de enemigos</b>: el jugador y sus colores,
+    la bala, el fondo, el robot, el tirador, la explosión y cuánto duran el parpadeo y la explosión.<br>
+    <b>No</b> lleva los niveles: esos se entregan desde la pestaña <b>🗺️ Niveles</b>.<br>
+    También puedes pulsar <b>Copiar</b> y pegar el texto en un mensaje.</p>
+  <div class="grupo"><button id="descargar">💾 Descargar dibujos</button><button id="copiar">Copiar</button></div>
   <textarea id="exp" readonly></textarea>
-  <h2 style="margin-top:16px">Importar <span class="q" data-ayuda="Lo contrario de Exportar: carga en el editor las poses, la bala y los colores desde los archivos del juego (o desde texto pegado).">?</span></h2>
-  <p class="ayuda">Pega los <code>.byte</code> de <code>datos.asm</code>, los colores de <code>main.asm</code> y/o las poses de
-    <code>kaiju_graficos.asm</code>, o abre esos archivos (puedes elegir varios a la vez).</p>
+  <h2 style="margin-top:16px">Importar (cargar dibujos guardados) <span class="q" data-ayuda="Lo contrario de Exportar: carga en el editor las poses, los enemigos, la bala y los colores desde los archivos del juego (o desde texto pegado).">?</span></h2>
+  <p class="ayuda">Para seguir con un trabajo descargado antes: pulsa <b>Abrir…</b> y elige tu <code>dibujos-kaiju.txt</code>.
+    También acepta los archivos del juego (<code>datos.asm</code>, <code>main.asm</code>, <code>kaiju_graficos.asm</code>, varios a la vez)
+    o el texto pegado en el cuadro.</p>
   <textarea id="imp" style="height:100px; color:var(--texto)"></textarea>
   <div class="grupo" style="margin-top:6px"><button id="cargar">Cargar en el editor</button>
-    <button id="abrir">Abrir datos.asm / main.asm / kaiju_graficos.asm…</button></div>
-  <input type="file" id="archivo" accept=".asm" multiple style="display:none">
+    <button id="abrir">Abrir dibujos-kaiju.txt o archivos del juego…</button></div>
+  <input type="file" id="archivo" accept=".asm,.txt" multiple style="display:none">
 </div>
+</section>
 
 <!-- selector de color -->
 <div id="paleta"><div class="caja">
@@ -320,7 +464,7 @@ const INICIAL = {
   bala: [[0,0],[1,1],[1,1],[0,0]],
   // poses de Kaiju (kaiju_graficos.asm): 6 poses x (P0 cuerpo + P1 contorno) x 24 filas,
   // en el orden de KPOSES. Colores KAIJU_PCOLR0/1; siempre con mezcla (GPRIOR $31).
-  kaiju: { p0:0xB8, p1:0x3A, poses:[
+  kaiju: { p0:0xC8, p1:0x44, poses:[
       { p0:[0x00,0x00,0x00,0x3C,0x3C,0x28,0x3C,0x20,0x3C,0x18,0x7E,0xB5,0xBD,0xBD,0xBD,0x3C,0x3C,0x3C,0x24,0x24,0x24,0x00,0x00,0x00],
         p1:[0x00,0x00,0x18,0x3C,0x3C,0x3C,0x7E,0x3C,0x3C,0x18,0x7E,0xAD,0xA5,0xA5,0xA5,0xBD,0x00,0x3C,0x24,0x24,0x24,0x36,0x00,0x00] },
       { p0:[0x00,0x00,0x00,0x3C,0x3C,0x28,0x3C,0x20,0x3C,0x18,0x7C,0xB6,0xBE,0xBF,0xBE,0x3E,0x3C,0x3C,0x24,0x20,0x20,0x00,0x00,0x00],
@@ -335,11 +479,11 @@ const INICIAL = {
         p1:[0x00,0x00,0x18,0x3C,0x3C,0x3C,0x7E,0x3C,0x3C,0x18,0x7E,0xAD,0xA5,0xA5,0xA5,0xBD,0x00,0x3C,0x24,0x24,0x24,0x6C,0x00,0x00] }
   ] },
   // colores de main.asm
-  col: { bala:0x26, fondo:0x00 }
+  col: { bala:0xDC, fondo:0x00 }
 };
 const copia = o => JSON.parse(JSON.stringify(o));
 // jugador 2: las mismas poses, solo sus colores KAIJU2_PCOLR0/1 (kaiju_graficos.asm)
-INICIAL.kaiju2 = { p0:0x78, p1:0x3A };
+INICIAL.kaiju2 = { p0:0x4A, p1:0x26 };
 let BASE = copia(INICIAL);   // lo que tiene el juego (para «descartar borrador»)
 let S = copia(INICIAL);      // lo que se está editando
 
@@ -361,7 +505,7 @@ const NOMBRE_TONO = ['gris','dorado','naranja','rojo-naranja','rosa','violeta','
   'azul','celeste','turquesa','verde azulado','verde','verde lima','oliva','naranja claro'];
 
 // ===================== estado y deshacer =====================
-let herramienta = 'lapiz';
+let herramienta = 'lapiz', tabActual = 'jugador';
 const deshacerPila = [], rehacerPila = [];
 function guardarUndo() {
   deshacerPila.push(JSON.stringify(S));
@@ -425,7 +569,7 @@ function crearRejilla(o) {
         ctx.fillRect(x * o.cw, 0, 1, cv.height);
       }
       for (let y = 1; y < o.h; y++) {
-        ctx.fillStyle = o.marca && y % 4 === 0 ? '#ffffff40' : '#ffffff1c';
+        ctx.fillStyle = o.marca && y % (o.marcaY || 4) === 0 ? '#ffffff40' : '#ffffff1c';
         ctx.fillRect(0, y * o.ch, cv.width, 1);
       }
       if (hover) {
@@ -500,10 +644,10 @@ document.getElementById('pcerrar').addEventListener('click', cerrarPaleta);
 document.getElementById('paleta').addEventListener('click', e => { if (e.target.id === 'paleta') cerrarPaleta(); });
 
 // ===================== herramientas y operaciones =====================
-document.querySelectorAll('#herr [data-h]').forEach(b =>
+document.querySelectorAll('[data-h]').forEach(b =>
   b.addEventListener('click', () => { herramienta = b.dataset.h; refrescar(); }));
-document.getElementById('deshacer').addEventListener('click', deshacer);
-document.getElementById('rehacer').addEventListener('click', rehacer);
+document.querySelectorAll('#deshacer, [data-deshacer]').forEach(b => b.addEventListener('click', deshacer));
+document.querySelectorAll('#rehacer, [data-rehacer]').forEach(b => b.addEventListener('click', rehacer));
 
 const rev8 = v => { let r = 0; for (let i = 0; i < 8; i++) if (v & (1 << i)) r |= 0x80 >> i; return r; };
 const OPS = {
@@ -526,8 +670,9 @@ document.addEventListener('keydown', e => {
   if (k === 'b') herramienta = 'lapiz';
   else if (k === 'e') herramienta = 'goma';
   else if (k === 'g') herramienta = 'relleno';
-  else if ('1234'.includes(k) && k.length === 1) {   // color de las poses de Kaiju
-    kPincel = +k - 1; if (herramienta === 'goma') herramienta = 'lapiz';
+  else if ('1234'.includes(k) && k.length === 1) {   // color de Kaiju, o del enemigo en sus pestañas
+    if (/enemigos|animacion/.test(tabActual)) ePincel = +k - 1; else kPincel = +k - 1;
+    if (herramienta === 'goma') herramienta = 'lapiz';
   } else return;
   refrescar();
 });
@@ -602,10 +747,10 @@ function pintarKaiju() {
 // ===================== refresco general =====================
 function refrescar() {
   rejillas.forEach(r => r.dibujar());
-  document.querySelectorAll('#herr [data-h]').forEach(b => b.classList.toggle('on', b.dataset.h === herramienta));
-  document.getElementById('deshacer').disabled = !deshacerPila.length;
-  document.getElementById('rehacer').disabled = !rehacerPila.length;
-  pintarSlots(); pintarKaiju();
+  document.querySelectorAll('[data-h]').forEach(b => b.classList.toggle('on', b.dataset.h === herramienta));
+  document.querySelectorAll('#deshacer, [data-deshacer]').forEach(b => b.disabled = !deshacerPila.length);
+  document.querySelectorAll('#rehacer, [data-rehacer]').forEach(b => b.disabled = !rehacerPila.length);
+  aplicarEnem(); pintarSlots(); pintarKaiju(); pintarEnem();
   if (window.nListo) nRedibujar();   // el mapa de niveles usa COLOR3 y la pose de Kaiju
 }
 let tGuardar = 0;
@@ -630,7 +775,7 @@ const FUENTE = {   // glifos 8x8 de la fuente del Atari que usa el HUD
 const J = { px:120, py:120, ddx:4, ddy:0, tick:0, paso:0, pose:0, espejo:false, andando:0, rt:0,
             activa:0, bx:0, by:0, bdx:0, bdy:0, gatillo:1, gatant:1, snd:0, puntos:0, imp:10 };
 // los 57 caracteres de kaiju_fuente (códigos 2-58), en base64. OJO: copia de kaiju_graficos.asm.
-const FUENTE_K_B64 = '/wMMDDAwwP/Dw/Pzz8/Dw6qCoqKKioKqVUFRUUVFQVUCDw8OLw4PAKD8/Oz+rPwACy+6+/u6Lwvg+K7v76744CoiIiIiIioAAgICAgICAgAqAgIqICAqACoCAioCAioAIiIiKgICAgAqICAqAgIqACogICoiIioAKgICAgICAgAqIiIqIiIqACoiIioCAioAAAAAAAC/uvsAAAAAAP6u7/u6vwAAAAAA767+AAAAAAAAAAAAAL+6+AAAAAAA/q4v+Lq/AAAAAAAvrv4AAAAAAAAAAAA8DP8/AwMPDzw8PPA/DzMzwMAAAPP/8/Pw8DD8AAAAADwM/w8wMDw8PDw88D8PDwwMDAAA8////zw8DAwAAAAAPAwAADAAADwAPAD8PwAAAAwAAAAAAADzAAAwMICAgICAgICoqICAoICAgKiIiIiIiIiIoAAAACgAAAAAwMDw8Dw8PA8AAAAAPDD//M//z88PDww//PDMzAMDAAAMDDw8PDw8DwAAAAA8MP/wz////zw8MDD88PAwMDAAADC4uOy4uDAAAAAAAAsAugAAAAAA4ACuAPsALwAAAAAA7wD4AAAAAAAAAAAAAAAAAAAAAAAAAAAA';
+const FUENTE_K_B64 = '/wMMDDAwwP/Dw/Pzz8/Dw6qCoqKKioKqVUFRUUVFQVUCDw8OLw4PAKD8/Oz+rPwACy+6+/u6Lwvg+K7v76744CoiIiIiIioAAgICAgICAgAqAgIqICAqACoCAioCAioAIiIiKgICAgAqICAqAgIqACogICoiIioAKgICAgICAgAqIiIqIiIqACoiIioCAioAAAAAAAC/uvsAAAAAAP6u7/u6vwAAAAAA767+AAAAAAAAAAAAAL+6+AAAAAAA/q4v+Lq/AAAAAAAvrv4AAAAAAAAAAAA8DP8/AwMPDz88PPw/D/8zAww8APzw8PDwMDzwAAAAADwM/w8wMDw8PDw88D8PDz/DAwMP8PDw8DwMzAAAAAAAPAwAADAAADwAPAD8PwAAAAwAAAAAAADzAAAwMICAgICAgICoqICAoICAgKiIiIiIiIiIoAAAACgAAAAAwMDw8Pw8PD8AAAAAPDD//D8PDw8PDDwP/PD/zMAwPAAMDDw8PDw8DwAAAAA8MP/wDw8PDzwwMwD88PDMw8DA8DC4uOy4uDAAAAAAAAsAugAAAAAA4ACuAPsALwAAAAAA7wD4AAAAAAAAAAAAAAAAAAAAAAAAAAAA';
 const KAIJU_PF = [0x8A, 0x34, 0xCC];   // KAIJU_COLOR0-2: bloques (píxeles 01, 10, 11)
 const b64 = t => Uint8Array.from(atob(t), c => c.charCodeAt(0));
 const FUENTE_K = b64(FUENTE_K_B64);
@@ -640,7 +785,216 @@ const FUENTE_S = [0xFF,0xD5,0xEA,0xD5,0xEA,0xD5,0xEA,0xD5, 0xFF,0x57,0xAB,0x57,0
   0xEA,0xD5,0xEA,0xD5,0xEA,0xD5,0xEA,0xFF, 0xAB,0x57,0xAB,0x57,0xAB,0x57,0xAB,0xFF,
   0xFF,0xEA,0xD5,0xEA,0xD5,0xEA,0xD5,0xEA, 0xFF,0xAB,0x57,0xAB,0x57,0xAB,0x57,0xAB,
   0xD5,0xEA,0xD5,0xEA,0xD5,0xEA,0xD5,0xFF, 0x57,0xAB,0x57,0xAB,0x57,0xAB,0x57,0xFF];
-const FUENTE_T = [0x0F,0x3F,0x35,0x36,0x35,0x0F,0x03,0xAF,0xF0,0xFC,0x5C,0x9C,0x5C,0xF0,0xC0,0xFF,0xAF,0x03,0x3F,0x33,0x33,0x3F,0x30,0xF0,0xFF,0xC3,0xFC,0xCC,0xCC,0xFC,0x0C,0x0F,0x0F,0x3F,0x35,0x35,0x35,0x0F,0x03,0x2F,0xF0,0xFC,0x5C,0xAC,0x5C,0xF0,0xC0,0xFF,0x2F,0x03,0x3F,0x33,0x33,0x3F,0xC0,0xC0,0xFF,0xC3,0xFC,0xCC,0xCC,0xFC,0x03,0x03,0x0F,0x3F,0x35,0x36,0x35,0x0F,0x03,0xFF,0xF0,0xFC,0x5C,0x9C,0x5C,0xF0,0xC0,0xFA,0xFF,0xC3,0x3F,0x33,0x33,0x3F,0x30,0xF0,0xFA,0xC0,0xFC,0xCC,0xCC,0xFC,0x0C,0x0F,0x0F,0x3F,0x35,0x3A,0x35,0x0F,0x03,0xFF,0xF0,0xFC,0x5C,0x5C,0x5C,0xF0,0xC0,0xF8,0xFF,0xC3,0x3F,0x33,0x33,0x3F,0xC0,0xC0,0xF8,0xC0,0xFC,0xCC,0xCC,0xFC,0x03,0x03];
+const FUENTE_T = [0x0A,0x2A,0xAB,0xAA,0xAA,0x0A,0x02,0x0A,0x80,0x88,0x88,0x88,0x8A,0x0A,0x2A,0xAA,0x2A,0x8A,0x0A,0x0A,0x08,0x28,0xA8,0x00,0xA8,0xA8,0xA0,0x20,0x28,0x28,0x08,0x2A,0x0A,0x2A,0xAB,0x0A,0xAA,0x2A,0x0A,0x02,0x80,0x82,0x82,0x82,0x8A,0x0A,0x2A,0xA8,0x8A,0x2A,0x0A,0x0A,0x02,0x02,0x0A,0x2A,0xA8,0xA8,0xA0,0xA8,0x28,0x08,0x2A,0x00,0x02,0x22,0x22,0xA2,0xA2,0xA0,0xA8,0x2A,0xA0,0xA8,0xEA,0xAA,0xAA,0xA0,0x80,0xA0,0x2A,0x0A,0x0A,0x28,0x28,0x28,0x20,0xA8,0xA8,0xA2,0xA0,0xA0,0x20,0x28,0x2A,0x00,0x02,0x82,0x82,0x82,0xA2,0xA0,0xA8,0x2A,0xA0,0xA8,0xEA,0xA0,0xAA,0xA8,0xA0,0x80,0x2A,0x0A,0x2A,0x28,0x20,0x20,0xA8,0x00,0xA2,0xA8,0xA0,0xA0,0x80,0x80,0xA0,0xA8];
+
+// ===================== Enemigos: 2 x 2 caracteres ANTIC 4 =====================
+// fuente_explosion (datos.asm): $48-$4B fase 0, $4C-$4F fase 1. OJO: copia.
+const FUENTE_E = [0x00,0x00,0x02,0x00,0x0B,0x2F,0x0F,0x2F, 0x00,0x00,0x00,0x88,0xE0,0xF8,0xF0,0xF8,
+  0x2F,0x0F,0x2F,0x0B,0x20,0x00,0x00,0x00, 0xF8,0xF0,0xF8,0xE0,0x80,0x88,0x00,0x00,
+  0x80,0x20,0x08,0x42,0x23,0x0C,0x8C,0x31, 0x02,0x42,0x18,0x20,0x04,0xC8,0x30,0x0E,
+  0xB0,0x0C,0x23,0x08,0x12,0x08,0x21,0x80, 0x4C,0x30,0x31,0x20,0x08,0x21,0x02,0x00];
+// cada cuadro = 4 caracteres seguidos (poner2x2: arriba-izq, arriba-der, abajo-izq, abajo-der)
+const LADOS = ['← Izq. A', '← Izq. B', 'Der. A →', 'Der. B →'];
+const ETIPOS = {
+  robot:   { nombre:'Robot', codigos:[0x1C, 0x20, 0x2C, 0x30], cuadros:LADOS, archivo:'kaiju_fuente' },
+  tirador: { nombre:'Tirador', codigos:[0x40, 0x44, 0x50, 0x54], cuadros:LADOS, archivo:'fuente_tirador' },
+  explo:   { nombre:'Explosión', codigos:[0x48, 0x4C], cuadros:['Fase 0', 'Fase 1'], archivo:'fuente_explosion' }
+};
+// dónde está el carácter c en las copias de la fuente que dibuja el editor
+const fuenteDe = c => c >= 0x48 && c < 0x50 ? [FUENTE_E, (c - 0x48) * 8]
+  : c >= 0x50 ? [FUENTE_T, 64 + (c - 0x50) * 8] : c >= 0x40 ? [FUENTE_T, (c - 0x40) * 8] : [FUENTE_K, (c - 2) * 8];
+// S.enem[tipo][cuadro * 32 + caracter * 8 + fila]
+function leerEnemFuente() {
+  const E = {};
+  for (const [t, T] of Object.entries(ETIPOS)) {
+    E[t] = [];
+    T.codigos.forEach(c0 => { for (let k = 0; k < 4; k++) { const [F, o] = fuenteDe(c0 + k); for (let r = 0; r < 8; r++) E[t].push(F[o + r]); } });
+  }
+  return E;
+}
+INICIAL.enem = leerEnemFuente(); BASE.enem = copia(INICIAL.enem); S.enem = copia(INICIAL.enem);
+// GOLPE_PASOS y EXPLO_PASOS (datos.asm): duración del parpadeo al herirlo y de la explosión, en pasos
+INICIAL.tiempos = { golpe:8, explo:12 }; BASE.tiempos = copia(INICIAL.tiempos); S.tiempos = copia(INICIAL.tiempos);
+let enemHecho = '';
+function aplicarEnem() {   // S.enem -> copias de la fuente (editor de niveles y prueba)
+  const k = JSON.stringify(S.enem); if (k === enemHecho) return; enemHecho = k;
+  for (const [t, T] of Object.entries(ETIPOS)) T.codigos.forEach((c0, f) => {
+    for (let c = 0; c < 4; c++) { const [F, o] = fuenteDe(c0 + c); for (let r = 0; r < 8; r++) F[o + r] = S.enem[t][f * 32 + c * 8 + r]; }
+  });
+  glifos.clear(); mapaCambio = true;   // solo se llama desde refrescar, con todo ya definido
+}
+const getE = (t, f, x, y) => (S.enem[t][f * 32 + ((y >> 3) * 2 + (x >> 2)) * 8 + (y & 7)] >> (6 - 2 * (x & 3))) & 3;
+function setE(t, f, x, y, v) {
+  const i = f * 32 + ((y >> 3) * 2 + (x >> 2)) * 8 + (y & 7), sh = 6 - 2 * (x & 3);
+  S.enem[t][i] = (S.enem[t][i] & ~(3 << sh)) | (v << sh);
+}
+const leerCuadro = (t, f) => Array.from({ length:16 }, (_, y) => Array.from({ length:8 }, (_, x) => getE(t, f, x, y)));
+const ponerCuadro = (t, f, M) => M.forEach((fila, y) => fila.forEach((v, x) => setE(t, f, x, y, v)));
+const EOPS = {
+  izq: M => M.map(f => [...f.slice(1), 0]), der: M => M.map(f => [0, ...f.slice(0, -1)]),
+  arr: M => [...M.slice(1), M[0].map(() => 0)], aba: M => [M[0].map(() => 0), ...M.slice(0, -1)],
+  espejoH: M => M.map(f => f.slice().reverse()), espejoV: M => M.slice().reverse(), limpiar: M => M.map(f => f.map(() => 0))
+};
+let eTipo = 'robot', eSel = 0, ePincel = 1;
+const eInv = () => eTipo === 'explo' || document.getElementById(tabActual === 'animacion' ? 'ainv' : 'einv').checked;
+// color de un píxel: 0 = fondo (COLOR4), 1-2 = COLOR0-1, 3 = COLOR2 o COLOR3 en inverso
+const colorE = (v, inv) => v === 0 ? null : PAL[v === 3 ? (inv ? S.col.bala : KAIJU_PF[2]) : KAIJU_PF[v - 1]];
+function dibujarEnem(ctx, t, f, inv, x0, y0, s) {   // s = alto de un píxel (el ancho es 2 s)
+  for (let y = 0; y < 16; y++) for (let x = 0; x < 8; x++) {
+    const c = colorE(getE(t, f, x, y), inv); if (c) { ctx.fillStyle = c; ctx.fillRect(x0 + x * 2 * s, y0 + y * s, 2 * s, s); }
+  }
+}
+const eCalco = (x, y) => document.getElementById('ecalco').checked ? colorE(getE(eTipo, eSel ^ 1, x, y), eInv()) : null;
+[['genem', 32, 16], ['ganim', 20, 10]].forEach(([id, cw, ch]) => crearRejilla({ id, w:8, h:16, cw, ch, marca:true, marcaY:8,
+  get:(x, y) => getE(eTipo, eSel, x, y), set:(x, y, v) => setE(eTipo, eSel, x, y, v),
+  color:v => colorE(v, eInv()), pincel:() => ePincel, calco:eCalco }));
+for (const [t, T] of Object.entries(ETIPOS)) {
+  const b = document.createElement('button'); b.dataset.et = t; b.textContent = T.nombre;
+  b.addEventListener('click', () => { eTipo = t; eSel = 0; refrescar(); });
+  document.getElementById('etipos').appendChild(b);
+}
+['einv', 'ecalco'].forEach(id => document.getElementById(id).addEventListener('change', refrescar));
+document.querySelectorAll('[data-eop]').forEach(b => b.addEventListener('click', () => {
+  guardarUndo(); ponerCuadro(eTipo, eSel, EOPS[b.dataset.eop](leerCuadro(eTipo, eSel))); cambio();
+}));
+document.getElementById('ecopiarbtn').addEventListener('click', () => {
+  const dst = +document.getElementById('ecopiar').value; if (dst === eSel) return;
+  guardarUndo(); ponerCuadro(eTipo, dst, leerCuadro(eTipo, eSel)); cambio();
+});
+document.getElementById('eespejar').addEventListener('click', () => {
+  if (eTipo === 'explo') return;
+  guardarUndo(); [0, 1].forEach(f => ponerCuadro(eTipo, f + 2, EOPS.espejoH(leerCuadro(eTipo, f)))); cambio();
+});
+document.getElementById('eprev').width = 2 * 48 + 24; document.getElementById('eprev').height = 48;
+// miniaturas clicables (cada una: [tipo, cuadro]); sel = la marcada
+// El DOM solo se rehace si cambia la lista de cuadros: rehacerlo en cada parpadeo de la animación se comía los clics.
+function pintarMinis(id, lista, sel, alClic) {
+  const cont = document.getElementById(id), k = JSON.stringify(lista.map(([t, f]) => [t, f]));
+  cont._clic = alClic;
+  if (cont.dataset.k !== k) {
+    cont.dataset.k = k; cont.innerHTML = '';
+    lista.forEach(([t, f]) => {
+      const d = document.createElement('div'); d.className = 'frame';
+      const cv = document.createElement('canvas'); cv.width = 48; cv.height = 48;
+      d.appendChild(cv); d.appendChild(document.createTextNode((lista.some(o => o[0] !== t) ? ETIPOS[t].nombre + ' · ' : '') + ETIPOS[t].cuadros[f]));
+      d.addEventListener('pointerdown', e => { e.preventDefault(); cont._clic(t, f); });
+      cont.appendChild(d);
+    });
+  }
+  [...cont.children].forEach((d, i) => {
+    const [t, f, inv] = lista[i], cx = d.firstChild.getContext('2d');
+    d.classList.toggle('sel', sel(t, f));
+    cx.fillStyle = PAL[S.col.fondo]; cx.fillRect(0, 0, 48, 48); dibujarEnem(cx, t, f, inv, 0, 0, 3);
+  });
+}
+function slotsEnem(id) {
+  const cont = document.getElementById(id); cont.innerHTML = '';
+  [[0, 'Fondo', 'COLOR4 · ' + hex(S.col.fondo), 'fondo'], [1, 'Color 1', 'COLOR0 · ' + hex(KAIJU_PF[0]) + ' (bloques)'],
+   [2, 'Color 2', 'COLOR1 · ' + hex(KAIJU_PF[1]) + ' (bloques)'],
+   eInv() ? [3, 'Rojo', 'COLOR3 · ' + hex(S.col.bala) + ' (inverso, bala)', 'bala'] : [3, 'Color 3', 'COLOR2 · ' + hex(KAIJU_PF[2]) + ' (bloques)']
+  ].forEach(([v, nom, sub, reg]) => {
+    const d = document.createElement('div'); d.className = 'slot' + (ePincel === v ? ' sel' : '');
+    d.innerHTML = htmlSlot(v ? colorE(v, eInv()) : PAL[S.col.fondo], nom, sub, !!reg);
+    d.addEventListener('click', e => {
+      if (e.target.tagName === 'BUTTON') { abrirPaleta(reg, nom); return; }
+      ePincel = v; if (herramienta === 'goma') herramienta = 'lapiz'; refrescar();
+    });
+    cont.appendChild(d);
+  });
+}
+function pintarEnem() {
+  const T = ETIPOS[eTipo];
+  if (eSel >= T.codigos.length) eSel = 0;
+  document.querySelectorAll('[data-et]').forEach(b => b.classList.toggle('on', b.dataset.et === eTipo));
+  const inv = document.getElementById('einv'); inv.disabled = eTipo === 'explo'; if (eTipo === 'explo') inv.checked = true;
+  document.getElementById('eespejar').disabled = eTipo === 'explo';
+  pintarMinis('eframes', T.cuadros.map((_, f) => [eTipo, f, eInv()]), (t, f) => f === eSel, (t, f) => { eSel = f; refrescar(); });
+  const sc = document.getElementById('ecopiar'), v = sc.value;
+  sc.innerHTML = T.cuadros.map((n, f) => `<option value="${f}">${n}</option>`).join(''); if (v !== '' && +v < T.cuadros.length) sc.value = v;
+  slotsEnem('eslots'); slotsEnem('aslots');
+  const p = document.getElementById('eprev').getContext('2d'); p.fillStyle = PAL[S.col.fondo]; p.fillRect(0, 0, 120, 48);
+  dibujarEnem(p, eTipo, eSel, eTipo === 'explo', 0, 0, 3); dibujarEnem(p, eTipo, eSel, true, 72, 0, 3);
+  aEl('agolpe').value = S.tiempos.golpe; aEl('aexplo').value = S.tiempos.explo;
+  if (tabActual === 'animacion') aDibujar();
+}
+
+// --- animación: mismos tiempos que enemigos.asm (UPD cuadros entre actualizaciones) ---
+const UPD = 22;   // cnt11 = 11 pasos del bucle, de 2 cuadros cada uno
+let aT = 0, aPlay = true, aUlt = performance.now();
+const aEl = id => document.getElementById(id);
+// lo que se ve en el cuadro t (en cuadros de 1/60 s): enemigo, cuadro, casilla x, inverso, texto
+function aEstado(t) {
+  const tipo = aEl('aenem').value, esc = aEl('aesc').value, inv0 = aEl('ainv').checked, u = Math.floor(t / UPD);
+  if (esc === 'explosion') {
+    // ge_herido pone rob_expl = EXPLO_PASOS y animar_robots lo baja ese mismo paso: se ve E-1 .. 1, fase 1 desde E/2
+    const E = S.tiempos.explo, T = t % (40 + 2 * E + 30);
+    if (T < 40) return { tipo, f:u & 1, x:9, inv:inv0, txt:'vivo; en el cuadro 40 recibe el disparo que lo destruye' };
+    const v = E - 1 - ((T - 40) >> 1);
+    if (v > 0) { const f = v <= (E >> 1) ? 1 : 0;
+      return { tipo:'explo', f, x:9, inv:true, txt:`explosión: rob_expl = ${v} (fase ${f}; cambia a la 1 en ${E >> 1})` }; }
+    return { tipo:null, x:9, txt:'borrado (dir = 9)' };
+  }
+  if (esc === 'herido') {
+    // rob_golpe = GOLPE_PASOS y animar_robots lo baja cada paso antes de dibujar: G-1 .. 0; inverso cambiado si golpe & 2
+    const G = S.tiempos.golpe, L = Math.max(80, 4 * G + 40), T = t % L, lado = Math.floor(t / L) & 1 ? 2 : 0;
+    const golpe = T < 2 * G ? G - 1 - (T >> 1) : 0;
+    return { tipo, f:lado + (u & 1), x:9, inv:inv0 !== !!(golpe & 2),
+      txt:T < 2 * G ? `herido: rob_golpe = ${golpe}${golpe & 2 ? ' → colores cambiados' : ''}` : 'esperando otro disparo (la próxima vez, del otro lado)' };
+  }
+  // patrulla: 16 actualizaciones, 8 hacia la izquierda (dir 2) y 8 hacia la derecha (dir 6)
+  const k0 = u % 16; let x = 9, fase = 0, dir = 2;
+  for (let k = 1; k <= k0; k++) { dir = (k - 1) < 8 ? 2 : 6; fase ^= 1; if (!fase) x += dir === 2 ? -1 : 1; }
+  const izq = dir < 4;
+  return { tipo, f:(izq ? 0 : 2) + fase, x, inv:inv0, jugador:tipo === 'tirador',
+    txt:`actualización ${k0} de 16 · va hacia la ${dir === 2 ? 'izquierda' : 'derecha'}` };
+}
+const A_PCX = 7, A_S = 3;   // casilla del centro del jugador en la escena del tirador; escala
+function aDibujar() {
+  const cv = aEl('aescena'), c = cv.getContext('2d'), e = aEstado(aT), s = A_S, cel = 8 * s;
+  c.imageSmoothingEnabled = false;
+  c.fillStyle = PAL[S.col.fondo]; c.fillRect(0, 0, cv.width, cv.height);
+  for (let x = 0; x < 20; x++) pintarChar(c, 4, x * cel, 5 * cel, cel, cel);   // piso: muro tipo 4
+  if (e.jugador) for (let y = 0; y < 24; y++) for (let x = 0; x < 8; x++) {   // Kaiju quieto, de frente al robot
+    const col = colorKaiju(getK(0, x, y)); if (col) { c.fillStyle = col; c.fillRect((A_PCX - 1) * cel + x * 2 * s, y * s, 2 * s, s); }
+  }
+  if (e.tipo) dibujarEnem(c, e.tipo, e.f, e.inv, e.x * cel, 3 * cel, s);
+  aEl('ainfo').textContent = `cuadro ${Math.floor(aT)} · ` + e.txt + (e.tipo ? ` · se ve: ${ETIPOS[e.tipo].nombre} ${ETIPOS[e.tipo].cuadros[e.f]}` : '');
+  // tira de cuadros de la escena, con los colores de este momento (en Herido parpadean)
+  const tipo = aEl('aenem').value, lista = aEl('aesc').value === 'explosion'
+    ? [[tipo, 0, e.inv], [tipo, 1, e.inv], ['explo', 0, true], ['explo', 1, true]]
+    : ETIPOS[tipo].cuadros.map((_, f) => [tipo, f, e.inv]);
+  pintarMinis('aframes', lista, (t, f) => t === e.tipo && f === e.f, (t, f) => {
+    aPlay = false; eTipo = t; eSel = f;
+    // llevar la animación a un momento donde se vea ese cuadro (en Herido, parpadeando)
+    const herido = aEl('aesc').value === 'herido', tope = 4 * (Math.max(80, 4 * S.tiempos.golpe + 40) + 2 * S.tiempos.explo + 70);
+    let alguno = -1;
+    for (let k = 0; k < tope; k++) { const z = aEstado(k); if (z.tipo === t && z.f === f) {
+      if (alguno < 0) alguno = k;
+      if (!herido || z.inv !== aEl('ainv').checked) { alguno = k; break; } } }
+    if (alguno >= 0) aT = alguno;
+    refrescar();
+  });
+  const bt = aPlay ? '⏸ Pausa' : '▶ Reproducir'; if (aEl('aplay').textContent !== bt) aEl('aplay').textContent = bt;
+}
+aEl('aplay').addEventListener('click', () => { aPlay = !aPlay; });
+aEl('apaso').addEventListener('click', () => {   // hasta que cambie lo que se ve
+  aPlay = false;
+  const k = JSON.stringify(aEstado(aT)); let t = Math.floor(aT);
+  for (let n = 0; n < 200 && JSON.stringify(aEstado(t)) === k; n++) t++;
+  aT = t;
+});
+['aenem', 'aesc'].forEach(id => aEl(id).addEventListener('change', () => { aT = 0; }));
+aEl('ainv').addEventListener('change', refrescar);
+[['agolpe', 'golpe', 2, 40], ['aexplo', 'explo', 2, 60]].forEach(([id, k, lo, hi]) => aEl(id).addEventListener('change', e => {
+  const v = Math.max(lo, Math.min(hi, Math.round(+e.target.value) || S.tiempos[k]));
+  if (v !== S.tiempos[k]) { guardarUndo(); S.tiempos[k] = v; aT = 0; cambio(); } else e.target.value = v;
+}));
+(function aBucle(now) {
+  if (aPlay) aT += Math.min(250, now - aUlt) / (1000 / 60) * +aEl('avel').value;
+  aUlt = now;
+  if (tabActual === 'animacion') aDibujar();
+  requestAnimationFrame(aBucle);
+})(performance.now());
 let mapa = new Uint8Array(960), mapaCambio = true;   // 24 x 40; fila 0 = HUD
 function cargarNivel(n) {   // dibujar_nivel, con los niveles del panel Niveles (cada parte en su copia)
   const N = NV.niveles[n] || NV.niveles[0];
@@ -1179,8 +1533,8 @@ nivel1                  ; Primer nivel
                         .byte 3,5,5,$FF,34,0,5,5,3              ; fila 19
                         .byte 3,5,5,5,$FF,32,0,5,5,5,3          ; fila 20
                         .byte 3,$FF,4,5,$FF,30,0,$FF,4,5,3      ; fila 21
-                        .byte 3,$FF,5,5,$FF,28,0,$FF,5,5,3      ; fila 22
-                        .byte 3,$FF,38,2,3                      ; fila 23
+                        .byte 3,$FF,5,5,$FF,10,0,8,3,$FF,4,0,3,9,$FF,10,0,$FF,5,5,3 ; fila 22
+                        .byte 3,$FF,16,2,3,$FF,4,0,3,$FF,16,2,3 ; fila 23
                         ; parte 8 (columna 2, fila 2)
                         .byte 3,$FF,16,2,3,$FF,4,0,3,$FF,16,2,3 ; fila 1
                         .byte 3,$FF,12,5,$FF,4,0,3,$FF,4,0,3,$FF,16,4,3 ; fila 2
@@ -1593,7 +1947,7 @@ document.getElementById('nrehacer').addEventListener('click', nRehacer);
 document.querySelectorAll('[data-nh]').forEach(b => b.addEventListener('click', () => { nHerr = b.dataset.nh; nRefrescar(); }));
 document.getElementById('nprobar').addEventListener('click', () => {
   document.getElementById('nivelsel').value = nSel; cargarNivel(nSel);
-  escena.scrollIntoView({ behavior:'smooth', block:'center' }); escena.focus({ preventScroll:true });
+  mostrarTab('prueba'); escena.scrollIntoView({ behavior:'smooth', block:'center' }); escena.focus({ preventScroll:true });
 });
 // el Ctrl+Z va a los niveles si lo último que se tocó fue este panel
 document.addEventListener('pointerdown', e => { focoNiveles = !!e.target.closest('#pniveles'); }, true);
@@ -1812,9 +2166,23 @@ function exportar() {
     L.push(`; ${t} (${c === 'p0' ? 'Player 0, cuerpo' : 'Player 1, contorno'})`);
     S.kaiju.poses[i][c].forEach((v, f) => L.push((f === 0 ? `kaiju_${n}_${c}` : '').padEnd(24) + '.byte %' + bin8(v)));
   }));
+  // enemigos: cada línea lleva su código, así el importador las encuentra por él
+  const lin = (et, t, f, c) => (et || '').padEnd(24) + '.byte ' + S.enem[t].slice(f * 32 + c * 8, f * 32 + c * 8 + 8).map(hex).join(',') +
+    `   ; ${hex(ETIPOS[t].codigos[f] + c)} ${t === 'explo' ? 'fase ' + f : (f < 2 ? 'izq.' : 'der.') + ' fase ' + (f & 1)}`;
+  L.push('', '; ==================== kaiju_graficos.asm: kaiju_fuente, robot ====================',
+    '; (reemplaza en kaiju_fuente las líneas con el mismo código)');
+  ETIPOS.robot.codigos.forEach((_, f) => { for (let c = 0; c < 4; c++) L.push(lin('', 'robot', f, c)); });
+  L.push('', '; ==================== datos.asm: tirador, explosión y tiempos ====================',
+    `EXPLO_PASOS = ${S.tiempos.explo}`, `GOLPE_PASOS = ${S.tiempos.golpe}         ; parpadeo de un robot herido (cambia el bit de inverso)`);
+  ['tirador', 'explo'].forEach(t => ETIPOS[t].codigos.forEach((_, f) => { for (let c = 0; c < 4; c++) L.push(lin(!f && !c ? ETIPOS[t].archivo : '', t, f, c)); }));
   document.getElementById('exp').value = L.join('\n');
 }
-document.getElementById('exportar').addEventListener('click', exportar);
+document.getElementById('descargar').addEventListener('click', () => {
+  exportar();
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([document.getElementById('exp').value + '\n'], { type:'text/plain' }));
+  a.download = 'dibujos-kaiju.txt'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+});
 document.getElementById('copiar').addEventListener('click', () => {
   const t = document.getElementById('exp'); exportar(); t.select();
   if (navigator.clipboard) navigator.clipboard.writeText(t.value).catch(() => document.execCommand('copy'));
@@ -1853,6 +2221,14 @@ function cargarTexto(texto, destino) {
   for (const [, r, v] of texto.matchAll(/^KAIJU2_(PCOLR[01])\s*=\s*\$([0-9a-f]{2})/gim)) {
     destino.kaiju2[r.toUpperCase() === 'PCOLR0' ? 'p0' : 'p1'] = parseInt(v, 16) & 0xFE; algo = true;
   }
+  // enemigos: líneas «.byte 8 bytes ; $código» (kaiju_fuente, fuente_tirador, fuente_explosion)
+  const porCodigo = {};
+  for (const m of texto.matchAll(/\.byte\s+((?:\$[0-9a-f]{2}\s*,\s*){7}\$[0-9a-f]{2})\s*;\s*\$([0-9a-f]{2})\b/gi))
+    porCodigo[parseInt(m[2], 16)] = m[1].split(',').map(v => parseInt(v.trim().slice(1), 16));
+  for (const [t, T] of Object.entries(ETIPOS)) T.codigos.forEach((c0, f) => {
+    for (let c = 0; c < 4; c++) { const b = porCodigo[c0 + c]; if (b) { destino.enem[t].splice(f * 32 + c * 8, 8, ...b); algo = true; } }
+  });
+  for (const [, n, v] of texto.matchAll(/^(GOLPE|EXPLO)_PASOS\s*=\s*(\d+)/gm)) { destino.tiempos[n === 'GOLPE' ? 'golpe' : 'explo'] = +v; algo = true; }
   // colores: pares «lda #valor» … «sta REGISTRO»
   const MAPA = { COLOR3:'bala', COLOR4:'fondo' };
   let a = null;
@@ -1883,6 +2259,18 @@ document.getElementById('archivo').addEventListener('change', async e => {
   guardarUndo(); S = nuevo; cambio();
 });
 
+// ===================== pestañas =====================
+function mostrarTab(t) {
+  tabActual = t;
+  document.querySelectorAll('section.tab').forEach(x => x.classList.toggle('on', x.dataset.tab === t));
+  document.querySelectorAll('#tabs [data-tab]').forEach(x => x.classList.toggle('on', x.dataset.tab === t));
+  try { localStorage.setItem('atari-juego-tab', t); } catch (e) {}
+  if (t === 'niveles' && window.nListo) nRedibujar();
+}
+document.querySelectorAll('#tabs [data-tab]').forEach(b => b.addEventListener('click', () => mostrarTab(b.dataset.tab)));
+{ let t = null; try { t = localStorage.getItem('atari-juego-tab'); } catch (e) {}
+  mostrarTab(document.querySelector(`section.tab[data-tab="${t}"]`) ? t : 'jugador'); }
+
 // ===================== arranque =====================
 let borrador = null;
 try { borrador = JSON.parse(localStorage.getItem('atari-juego-editor')); } catch (e) {}
@@ -1893,6 +2281,8 @@ if (borrador && borrador.col) {   // los borradores viejos traen el robot origin
   if (borrador.kaiju && borrador.kaiju.poses) borrador.kaiju.poses.length = 6;
   if (!borrador.kaiju) borrador.kaiju = copia(INICIAL.kaiju);
   if (!borrador.kaiju2) borrador.kaiju2 = copia(INICIAL.kaiju2);
+  if (!borrador.enem) borrador.enem = copia(INICIAL.enem);
+  if (!borrador.tiempos) borrador.tiempos = copia(INICIAL.tiempos);
   delete borrador.kaiju2.poses;   // J2 ya no tiene poses propias
 }
 if (borrador && borrador.col && JSON.stringify(borrador) !== JSON.stringify(BASE)) {

@@ -68,8 +68,9 @@ Si clonas con git, evita que convierta los finales de línea de los binarios `ka
 - **Robots**: patrullan su zona y te persiguen si entras en ella. Tocarlos cuesta 1 de energía.
   Cada disparo les quita una vida (las que tengan en el editor); destruirlos da +10.
 - **Tiradores**: robots que te disparan más o menos cada 1,5 segundos cuando estás a menos de 14 casillas.
-  Al descubrirte no te persiguen: se ponen a distancia de tiro y, si te acercas, huyen al doble de
-  velocidad. Cada bala que te toca cuesta 1 de energía; las balas se detienen en los bloques.
+  Patrullando miran hacia donde caminan; al descubrirte, hacia ti. No te persiguen: se ponen a distancia de
+  tiro y, si te acercas, huyen al doble de velocidad. Cada bala que te toca cuesta 1 de energía; las balas se
+  detienen en los bloques.
 - **Partes**: un nivel puede ocupar varias pantallas (hasta 9). Se pasa a la de al lado saliendo por un
   hueco del borde; lo que ocurre en cada parte (bloques rotos, células, robots) se conserva al volver.
 - **Bloques azules**: se rompen a disparos (+1). El borde verde también te daña.

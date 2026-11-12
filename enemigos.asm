@@ -133,14 +133,18 @@ libre2x2
         ora (ptr2),y
         rts
 
-; dibuja el robot X segun su direccion y su fase (el tirador, mirando al
-; jugador); si esta herido, parpadea cambiando el bit de inverso
+; dibuja el robot X segun su direccion y su fase (el tirador: patrullando mira
+; hacia donde anda; alertado, al jugador); si esta herido, parpadea cambiando
+; el bit de inverso
 dibujar_robot
         jsr dir_robot
         lda rob_clase,x
         and #$7F
         cmp #TIROCLASE
         bne dr_dir
+        lda rob_estado,x
+        cmp #2          ; alertado: mira al jugador
+        bne dr_dir      ; patrullando: como los demas, segun rob_dir
         lda rob_x,x
         cmp pcx         ; C = 1: el jugador esta a su izquierda (o encima)
         lda rob_clase,x

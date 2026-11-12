@@ -190,7 +190,7 @@ iniciar
         sta PCOLR1      ; contorno del robot
         lda #$31        ; bit 4: missiles con su propio color (COLOR3);
         sta GPRIOR      ; bit 5: P0+P1 se mezclan (3er color del robot)
-        lda #$26        ; COLOR3: bala y enemigos (caracteres inversos)
+        lda #$DC        ; COLOR3: bala y enemigos (caracteres inversos)
         sta COLOR3
         lda #0          ; fondo negro (COLOR4: fondo y borde en ANTIC 4/E)
         sta COLOR4

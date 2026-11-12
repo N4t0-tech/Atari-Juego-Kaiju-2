@@ -11,10 +11,10 @@
 ;     pixel: 00 fondo, 01 COLOR0, 10 COLOR1, 11 COLOR2; caracter inverso usa COLOR3)
 
 ; --- colores (registros sombra del OS) ---
-KAIJU_PCOLR0    = $B8   ; cuerpo del jugador (P0)
-KAIJU_PCOLR1    = $3A   ; contorno del jugador (P1); mezcla P0|P1 = $BA
-KAIJU2_PCOLR0   = $78   ; jugador 2: mismas poses, cuerpo (P2)
-KAIJU2_PCOLR1   = $3A   ; contorno del jugador 2 (P3); mezcla P2|P3 = $7A
+KAIJU_PCOLR0    = $C8   ; cuerpo del jugador (P0)
+KAIJU_PCOLR1    = $44   ; contorno del jugador (P1); mezcla P0|P1 = $CC
+KAIJU2_PCOLR0   = $4A   ; jugador 2: mismas poses, cuerpo (P2)
+KAIJU2_PCOLR1   = $26   ; contorno del jugador 2 (P3); mezcla P2|P3 = $6E
 KAIJU_COLOR0    = $8A   ; bloques: pixel 01
 KAIJU_COLOR1    = $34   ; bloques: pixel 10
 KAIJU_COLOR2    = $CC   ; bloques: pixel 11
@@ -350,14 +350,14 @@ kaiju_fuente            .byte $FF,$03,$0C,$0C,$30,$30,$C0,$FF   ; $02 borde (val
                         .byte $00,$00,$00,$00,$00,$FE,$AE,$2F   ; $19 '9'
                         .byte $F8,$BA,$BF,$00,$00,$00,$00,$00   ; $1A
                         .byte $2F,$AE,$FE,$00,$00,$00,$00,$00   ; $1B
-                        .byte $00,$00,$00,$00,$3C,$0C,$FF,$3F   ; $1C
-                        .byte $03,$03,$0F,$0F,$3C,$3C,$3C,$F0   ; $1D
-                        .byte $3F,$0F,$33,$33,$C0,$C0,$00,$00   ; $1E
-                        .byte $F3,$FF,$F3,$F3,$F0,$F0,$30,$FC   ; $1F
-                        .byte $00,$00,$00,$00,$3C,$0C,$FF,$0F   ; $20
-                        .byte $30,$30,$3C,$3C,$3C,$3C,$3C,$F0   ; $21 'A'
-                        .byte $3F,$0F,$0F,$0C,$0C,$0C,$00,$00   ; $22 'B'
-                        .byte $F3,$FF,$FF,$FF,$3C,$3C,$0C,$0C   ; $23 'C'
+                        .byte $00,$00,$00,$00,$3C,$0C,$FF,$3F   ; $1C izq. fase 0
+                        .byte $03,$03,$0F,$0F,$3F,$3C,$3C,$FC   ; $1D izq. fase 0
+                        .byte $3F,$0F,$FF,$33,$03,$0C,$3C,$00   ; $1E izq. fase 0
+                        .byte $FC,$F0,$F0,$F0,$F0,$30,$3C,$F0   ; $1F izq. fase 0
+                        .byte $00,$00,$00,$00,$3C,$0C,$FF,$0F   ; $20 izq. fase 1
+                        .byte $30,$30,$3C,$3C,$3C,$3C,$3C,$F0   ; $21 izq. fase 1
+                        .byte $3F,$0F,$0F,$3F,$C3,$03,$03,$0F   ; $22 izq. fase 1
+                        .byte $F0,$F0,$F0,$F0,$3C,$0C,$CC,$00   ; $23 izq. fase 1
                         .byte $00,$00,$00,$00,$3C,$0C,$00,$00   ; $24 'D'
                         .byte $30,$00,$00,$3C,$00,$3C,$00,$FC   ; $25 'E'
                         .byte $3F,$00,$00,$00,$0C,$00,$00,$00   ; $26 'F'
@@ -366,14 +366,14 @@ kaiju_fuente            .byte $FF,$03,$0C,$0C,$30,$30,$C0,$FF   ; $02 borde (val
                         .byte $A8,$80,$80,$A0,$80,$80,$80,$A8   ; $29 'I'
                         .byte $88,$88,$88,$88,$88,$88,$88,$A0   ; $2A 'J'
                         .byte $00,$00,$00,$28,$00,$00,$00,$00   ; $2B 'K'
-                        .byte $C0,$C0,$F0,$F0,$3C,$3C,$3C,$0F   ; $2C 'L'
-                        .byte $00,$00,$00,$00,$3C,$30,$FF,$FC   ; $2D 'M'
-                        .byte $CF,$FF,$CF,$CF,$0F,$0F,$0C,$3F   ; $2E 'N'
-                        .byte $FC,$F0,$CC,$CC,$03,$03,$00,$00   ; $2F 'O'
-                        .byte $0C,$0C,$3C,$3C,$3C,$3C,$3C,$0F   ; $30 'P'
-                        .byte $00,$00,$00,$00,$3C,$30,$FF,$F0   ; $31 'Q'
-                        .byte $CF,$FF,$FF,$FF,$3C,$3C,$30,$30   ; $32 'R'
-                        .byte $FC,$F0,$F0,$30,$30,$30,$00,$00   ; $33 'S'
+                        .byte $C0,$C0,$F0,$F0,$FC,$3C,$3C,$3F   ; $2C der. fase 0
+                        .byte $00,$00,$00,$00,$3C,$30,$FF,$FC   ; $2D der. fase 0
+                        .byte $3F,$0F,$0F,$0F,$0F,$0C,$3C,$0F   ; $2E der. fase 0
+                        .byte $FC,$F0,$FF,$CC,$C0,$30,$3C,$00   ; $2F der. fase 0
+                        .byte $0C,$0C,$3C,$3C,$3C,$3C,$3C,$0F   ; $30 der. fase 1
+                        .byte $00,$00,$00,$00,$3C,$30,$FF,$F0   ; $31 der. fase 1
+                        .byte $0F,$0F,$0F,$0F,$3C,$30,$33,$00   ; $32 der. fase 1
+                        .byte $FC,$F0,$F0,$CC,$C3,$C0,$C0,$F0   ; $33 der. fase 1
                         .byte $30,$B8,$B8,$EC,$B8,$B8,$30,$00   ; $34 'T'
                         .byte $00,$00,$00,$00,$0B,$00,$BA,$00   ; $35 'U'
                         .byte $00,$00,$00,$00,$E0,$00,$AE,$00   ; $36 'V'

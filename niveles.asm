@@ -213,8 +213,8 @@ nivel1                  ; Primer nivel
                         .byte 3,5,5,$FF,34,0,5,5,3              ; fila 19
                         .byte 3,5,5,5,$FF,32,0,5,5,5,3          ; fila 20
                         .byte 3,$FF,4,5,$FF,30,0,$FF,4,5,3      ; fila 21
-                        .byte 3,$FF,5,5,$FF,28,0,$FF,5,5,3      ; fila 22
-                        .byte 3,$FF,38,2,3                      ; fila 23
+                        .byte 3,$FF,5,5,$FF,10,0,8,3,$FF,4,0,3,9,$FF,10,0,$FF,5,5,3 ; fila 22
+                        .byte 3,$FF,16,2,3,$FF,4,0,3,$FF,16,2,3 ; fila 23
                         ; parte 8 (columna 2, fila 2)
                         .byte 3,$FF,16,2,3,$FF,4,0,3,$FF,16,2,3 ; fila 1
                         .byte 3,$FF,12,5,$FF,4,0,3,$FF,4,0,3,$FF,16,4,3 ; fila 2
