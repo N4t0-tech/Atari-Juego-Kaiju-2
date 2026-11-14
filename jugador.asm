@@ -173,7 +173,7 @@ borde_hiere
         bcc bh_fin
         cmp #4
         bcs bh_fin
-        jmp herir
+        jmp herir_dolor
 bh_fin  rts
 
 ; animacion: al caminar alterna paso A y B cada 5 frames (como Kaiju).

@@ -123,6 +123,7 @@ ti_tira lda #TIRO_ESPERA
         ldy #MAXEB-1    ; una bala enemiga libre
 ti_busca
         lda eb_activa,y
+        ora eb_chispa,y ; no reutilizar un missile que aun tiene chispas
         beq ti_libre
         dey
         bpl ti_busca
@@ -245,7 +246,15 @@ ve_fin  rts
 actualizar_balas_enemigas
         ldx #MAXEB-1
 abe_una lda eb_activa,x
+        bne abe_vuela
+        lda eb_chispa,x ; bala muerta: animar sus chispas
         beq abe_sig
+        jsr borrar_chispa_be
+        dec eb_chispa,x
+        beq abe_sig
+        jsr pintar_chispa_be
+        jmp abe_sig
+abe_vuela
         jsr borrar_be
         lda eb_x,x
         clc
@@ -277,15 +286,25 @@ abe_una lda eb_activa,x
         bcc abe_pinta   ; vacio
         jsr solido
         bcc abe_pinta
+        cmp #5          ; el bloque azul se rompe sin chispas
+        beq abe_muere
+        lda #0          ; solido: chispas en eb_x/eb_y
+        sta eb_activa,x
+        lda #CHISPA_PASOS
+        sta eb_chispa,x
+        jsr pintar_chispa_be
+        jmp abe_sig
 abe_muere
         lda #0
         sta eb_activa,x
+        sta eb_chispa,x
         beq abe_sig
 abe_pinta
         jsr pintar_be
 abe_sig dex
-        bpl abe_una
-        rts
+        bmi abe_fin
+        jmp abe_una
+abe_fin rts
 
 ; balas enemigas que tocan al jugador activo (vivo): herir y la bala muere.
 ; Invulnerable, lo atraviesan
@@ -319,6 +338,7 @@ baj_una lda eb_activa,x
         jsr borrar_be
         lda #0
         sta eb_activa,x
+        sta eb_chispa,x
 baj_sig dex
         bpl baj_una
 baj_fin rts
@@ -357,4 +377,46 @@ bb_lin  lda PMG+$300,y
         iny
         dec tmp
         bne bb_lin
+        rts
+
+; dibuja las chispas de la bala enemiga X con su missile. Conserva X.
+pintar_chispa_be
+        stx eb_i
+        lda bits_m+2,x
+        sta tmp
+        eor #$FF
+        sta tmp2
+        lda eb_x,x
+        sta HPOSM2,x    ; ancho doble: 4 HPOS
+        lda eb_chispa,x
+        cmp #CHISPA_PASOS/2+1
+        lda #<chispa_icono
+        ldy #>chispa_icono
+        bcs pcb_set
+        lda #<(chispa_icono+9)
+        ldy #>(chispa_icono+9)
+pcb_set sta ptr
+        sty ptr+1
+        ldx eb_i
+        lda eb_y,x
+        tax
+        jsr pintar_chispas
+        ldx eb_i
+        rts
+
+; borra las 9 lineas de chispas de la bala enemiga X. Conserva X.
+borrar_chispa_be
+        stx eb_i
+        lda bits_m+2,x
+        eor #$FF
+        sta tmp2
+        ldy eb_y,x
+        ldx #9
+bcb_lin lda PMG+$300,y
+        and tmp2
+        sta PMG+$300,y
+        iny
+        dex
+        bne bcb_lin
+        ldx eb_i
         rts

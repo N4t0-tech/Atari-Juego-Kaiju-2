@@ -259,6 +259,7 @@ preparar_jugador
         sta invul
         sta ddy
         sta activa
+        sta chispa
         sta salida
         sta andando
         lda #4          ; mirando a la derecha

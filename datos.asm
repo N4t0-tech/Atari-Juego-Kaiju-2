@@ -23,6 +23,7 @@ bx      .byte 0         ; posicion de la bala
 by      .byte 0
 bdx     .byte 0         ; velocidad de la bala
 bdy     .byte 0
+chispa  .byte 0         ; pasos que quedan de chispas (bala contra un solido)
 energia .byte 5         ; iconos de energia; 0 = fuera de la partida
 invul   .byte 0         ; pasos de invulnerabilidad que quedan tras un golpe
 salida  .byte 0         ; SAL_*: por donde quiso salir el jugador este paso
@@ -39,6 +40,7 @@ J_PY    = py - JUG
 J_ENERGIA = energia - JUG
 J_SALIDA = salida - JUG
 J_ACTIVA = activa - JUG
+J_CHISPA = chispa - JUG
 
 FRAMES_PASO = 2         ; frames por paso del juego (1 = 50/60 pasos por segundo)
 npaso   .byte 0         ; contador de pasos del juego (freno en diagonal)
@@ -182,6 +184,7 @@ eb_x    :MAXEB .byte 0          ; HPOS de su esquina
 eb_y    :MAXEB .byte 0          ; linea PMG de su esquina
 eb_dx   :MAXEB .byte 0          ; velocidad por paso
 eb_dy   :MAXEB .byte 0
+eb_chispa :MAXEB .byte 0        ; pasos que quedan de chispas al chocar
 eb_slot .byte 0                 ; auxiliares
 eb_i    .byte 0
 ; apuntar: velocidad (sin signo) de la bala enemiga en las 16 direcciones;
@@ -230,9 +233,10 @@ SND_TIRO    = 3
 SND_EXPLOSION = 4       ; ruido que va bajando
 SND_IMPACTO = 5         ; robot herido: zumbido que va subiendo
 SND_VICTORIA = 6        ; nivel superado: tono que va subiendo
-snd_base .byte 20,60,40,90,30,50,120
-snd_paso .byte 6,$FC,12,$FA,24,$F8,$F4
-snd_dist .byte $A0,$A0,$80,$A0,$80,$C0,$A0  ; $A = tono puro, $8 = ruido
+SND_DOLOR   = 7         ; borde verde: gruñido robotico que va bajando
+snd_base .byte 20,60,40,90,30,50,120,40
+snd_paso .byte 6,$FC,12,$FA,24,$F8,$F4,16
+snd_dist .byte $A0,$A0,$80,$A0,$80,$C0,$A0,$C0  ; $A = tono puro, $8 = ruido
 
 txt_level .byte $28,$29,$2A,$29,$28     ; "LEVEL" con la fuente de Kaiju
 hud_dirty .byte 1       ; 1 = hay que redibujar el HUD
@@ -249,6 +253,12 @@ bala_icono .byte %0000
 ; los bits altos de cada pareja y la derecha en los bajos, repetido para los
 ; 4 missiles (se enmascara con bits_m). La arma iniciar
 bala_m  :4 .byte 0
+; chispas al chocar con un solido: una fila por linea (0/1). Cuatro 1 seguidos
+; forman un cuadrado de 4x4 px. Cerca = un cuadrado centrado; lejos = dos
+; cuadrados arriba y abajo con una linea de hueco. CHISPA_PASOS pasos = 12 frames
+CHISPA_PASOS = 6
+chispa_icono .byte 0,0,1,1,1,1,0,0,0
+        .byte 1,1,1,1,0,1,1,1,1
 
 ; poses del jugador (kaiju_graficos.asm). Cada pose es P0 (24 bytes) seguido
 ; de P1 (24 bytes); dibujar_jugador cuenta con eso. Las B van tras las A.

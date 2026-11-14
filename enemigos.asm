@@ -554,16 +554,23 @@ ct_rs   inx
 ct_fin  rts
 
 ; el jugador activo recibe un golpe: -1 de energia si no esta invulnerable.
-; Conserva X e Y.
-herir   lda invul
-        bne he_fin
+; Conserva X e Y. A la entrada se elige el sonido: herir = golpe normal,
+; herir_dolor = choque contra el borde verde.
+herir   lda #SND_GOLPE
+        bne he_tipo     ; SND_GOLPE nunca es 0
+herir_dolor
+        lda #SND_DOLOR
+he_tipo pha
+        lda invul
+        bne he_fin_pop
         lda energia
-        beq he_fin
+        beq he_fin_pop
         dec energia
         lda #50
         sta invul
-        lda #1
-        sta hud_dirty
-        lda #SND_GOLPE
+        inc hud_dirty
+        pla
         jmp sonar
+he_fin_pop
+        pla
 he_fin  rts

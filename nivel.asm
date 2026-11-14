@@ -233,10 +233,15 @@ dt_p1   rts
 limpiar_pmg
         lda #0
         sta activa
+        sta chispa
+        sta jug_datos+J_CHISPA
+        sta jug_datos+JUG_TAM+J_CHISPA
         sta jug_datos+J_ACTIVA
         sta jug_datos+JUG_TAM+J_ACTIVA
         sta eb_activa
         sta eb_activa+1
+        sta eb_chispa
+        sta eb_chispa+1
         tax
 lpm     sta PMG,x
         sta PMG+$100,x

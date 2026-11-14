@@ -148,6 +148,7 @@ tu_fuera
         jsr borrabala
         lda #0
         sta activa
+        sta chispa
         jsr hpos_jugador
         ldx jugador     ; si todavia no jugo, entra al apretar su boton (el
         lda unido_j,x   ; que ya jugo y se quedo sin energia sigue fuera)

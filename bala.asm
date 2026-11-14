@@ -10,7 +10,13 @@ actualizar_bala
         sta gatillo
         lda activa
         bne bal_mueve
-        jmp nuevabala
+        jsr nuevabala
+        lda chispa
+        beq finchi
+        dec chispa
+        beq finchi
+        jmp pintachispa
+finchi  rts
 bal_mueve
         lda bx          ; avanzar la bala
         clc
@@ -47,6 +53,7 @@ bal_pt  stx bpunto
         pla
         jsr bloque_en
         bcc bal_sig       ; vacio
+        and #$7F          ; quita el bit de inverso
         cmp #5            ; bloque azul: se rompe, +1 punto
         bne bal_cel
         lda #0
@@ -62,9 +69,8 @@ bal_sig ldx bpunto
         lda brompe
         bne matar
         jmp pintabala
-bal_cel and #$7F
-        cmp #$14
-        bcc matar         ; borde o ladrillo
+bal_cel cmp #$14
+        bcc chocar        ; borde, muro o decorado solido: chispas
         cmp #$1C
         bcs bal_rob
         ldx jugador       ; celula: fin de la etapa (se repite) y
@@ -75,12 +81,54 @@ bal_cel and #$7F
 bal_rob cmp #$34
         bcc bal_gol
         cmp #TIROCLASE    ; tirador: $40-$57
-        bcc matar
+        bcc chocar        ; muro solido ($34-$3F): chispas
         cmp #TIROCLASE+$18
         bcs matar
 bal_gol jsr golpear_enemigo
 matar   lda #0
         sta activa
+        rts
+chocar  lda #0            ; contra un solido: chispas en bx/by
+        sta activa
+        lda #CHISPA_PASOS
+        sta chispa
+; chispas con el missile del jugador: 9 lineas de 4x4 desde by
+pintachispa
+        ldx jugador
+        lda bits_m,x    ; solo los bits del missile del jugador
+        sta tmp
+        eor #$FF
+        sta tmp2
+        lda bx
+        sta HPOSM0,x    ; ancho doble: 4 HPOS
+        ldx by
+        lda chispa
+        cmp #CHISPA_PASOS/2+1
+        lda #<chispa_icono
+        ldy #>chispa_icono
+        bcs pch_set
+        lda #<(chispa_icono+9)
+        ldy #>(chispa_icono+9)
+pch_set  sta ptr
+        sty ptr+1
+        jmp pintar_chispas
+; dibuja la columna de chispas: X = primera linea, ptr = fila de chispa_icono,
+; tmp = bits del missile, tmp2 = su complemento. 9 lineas. No conserva X.
+pintar_chispas
+        ldy #0
+pch_fila lda (ptr),y
+        beq pch_off
+        lda PMG+$300,x
+        ora tmp
+        sta PMG+$300,x
+        jmp pch_sig
+pch_off  lda PMG+$300,x
+        and tmp2
+        sta PMG+$300,x
+pch_sig  inx
+        iny
+        cpy #9
+        bne pch_fila
         rts
 nuevabala
         lda gatillo
@@ -120,6 +168,8 @@ dpy     stx bdy
 recta
         lda #1
         sta activa
+        lda #0
+        sta chispa      ; disparar cancela las chispas que hubiera
         lda #SND_DISPARO
         jsr sonar
 pintabala
@@ -152,16 +202,17 @@ bal_pb  txa
         sta HPOSM0,x    ; ancho doble: 4 HPOS
         rts
 
-; borra la bala (8 lineas de su missile) si esta activa
+; borra la bala o las chispas (9 lineas de su missile) si estan activas
 borrabala
         lda activa
+        ora chispa
         beq nobala
         ldx jugador
         lda bits_m,x
         eor #$FF
         sta tmp2
         ldy by
-        ldx #8
+        ldx #9
 bal_bb  lda PMG+$300,y
         and tmp2
         sta PMG+$300,y

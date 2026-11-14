@@ -92,7 +92,9 @@ Si clonas con git, evita que convierta los finales de línea de los binarios `ka
 - **Marcador**: en la fila superior, la energía de J1 a la izquierda, las células que faltan al centro y
   el puntaje a la derecha; en la fila inferior, la energía de J2.
 - **Efectos**: los robots parpadean cuando los hieres y explotan al destruirlos; tú parpadeas mientras
-  eres invulnerable; junto al hueco aparece un cartel con cuántos jugadores esperan para cambiar de parte.
+  eres invulnerable; los disparos sacan chispas cuadradas al chocar con los muros (también las balas de los tiradores);
+  al chocar con el borde verde suena un gruñido robótico de dolor;
+  junto al hueco aparece un cartel con cuántos jugadores esperan para cambiar de parte.
 
 ## Estructura
 
