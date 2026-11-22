@@ -118,6 +118,140 @@ co_col  lda RANDOM
         sta COLOR2
 co_fin  rts
 
+; animacion de muerte en single player: se le corta la cabeza y cae al suelo.
+; Solo cuando un unico jugador entro a la partida
+muerte_cabeza
+        lda unido_j
+        eor unido_j+1
+        cmp #1
+        bne mc_fin
+        ldx #0          ; cargar el jugador que sigue en la partida
+        lda unido_j
+        bne mc_j
+        inx
+mc_j    txa
+        jsr cargar_jugador
+        jsr limpiar_pmg
+        jsr mc_preparar         ; ptr/ptr4 = pose, ptr3/ptr5 = PMG, HPOS
+        lda #0
+        sta ecuenta
+mc_paso jsr mc_borrar_pmg       ; limpia sprite del jugador
+        jsr mc_cuerpo           ; cuerpo sin cabeza
+        jsr mc_cabeza           ; cabeza cayendo
+        jsr mc_nota             ; nota menor descendente
+        jsr esperar_paso
+        inc ecuenta
+        lda ecuenta
+        cmp #32
+        bne mc_paso
+        lda #0                  ; silencio
+        sta AUDC1
+        sta sndtim
+        lda #16                 ; pausa con la cabeza en el suelo
+        sta tmp3
+mc_pausa jsr esperar_paso
+        dec tmp3
+        bne mc_pausa
+        jsr limpiar_pmg
+mc_fin  rts
+
+; prepara punteros de pose y PMG del jugador activo
+mc_preparar
+        ldx pose
+        lda poses_lo,x
+        sec
+        sbc #4
+        sta ptr
+        lda poses_hi,x
+        sbc #0
+        sta ptr+1
+        lda ptr
+        clc
+        adc #24
+        sta ptr4
+        lda ptr+1
+        adc #0
+        sta ptr4+1
+        jsr pmg_jugador
+        lda px                  ; restaurar HPOS (tu_fuera lo puso a 0)
+        jmp hpos_jugador
+
+; borra solo las 32 lineas PMG del jugador activo
+mc_borrar_pmg
+        ldy #31
+        lda #0
+mc_bp   sta (ptr3),y
+        sta (ptr5),y
+        dey
+        bpl mc_bp
+        rts
+
+; cuerpo sin cabeza: filas 14..27 de la pose
+mc_cuerpo
+        ldy #27
+mc_bo   lda (ptr),y
+        jsr espejar
+        sta (ptr3),y
+        lda (ptr4),y
+        jsr espejar
+        sta (ptr5),y
+        dey
+        cpy #13
+        bne mc_bo
+        rts
+
+; cabeza (filas 4..13) desplazada hacia abajo segun mc_dy
+mc_cabeza
+        ldx ecuenta
+        lda mc_dy,x
+        sta tmp2
+        ldy #13
+mc_hd   sty oy_r
+        tya
+        clc
+        adc tmp2                ; destino = y + dy
+        cmp #32
+        bcs mc_hd_s
+        sta ox_r
+        ldy oy_r
+        lda (ptr),y
+        jsr espejar
+        ldy ox_r
+        sta (ptr3),y
+        ldy oy_r
+        lda (ptr4),y
+        jsr espejar
+        ldy ox_r
+        sta (ptr5),y
+mc_hd_s ldy oy_r
+        dey
+        cpy #3
+        bne mc_hd
+        rts
+
+; nota de muerte: 8 notas x 4 pasos, escala menor descendente
+mc_nota lda ecuenta
+        and #3
+        bne mc_nenv
+        lda ecuenta
+        lsr @
+        lsr @
+        tax
+        lda mc_notas,x
+        sta AUDF1
+mc_nenv lda ecuenta
+        and #3
+        eor #3
+        clc
+        adc #5                  ; volumen 8..5 dentro de cada nota
+        ora #$A0                ; tono puro
+        sta AUDC1
+        rts
+
+; caida al suelo y queda ahi (lineas PMG)
+mc_dy   .byte 0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,14,14,13,14,14,14,14,14,14,14,14,14,14,14,14,14,14
+mc_notas .byte 60,68,76,81,91,102,108,121 ; C5 Bb4 Ab4 G4 F4 Eb4 D4 C4 (menor)
+
 ; animacion de nivel superado (el juego queda congelado): el nivel se borra
 ; fila por fila de arriba abajo, los jugadores que siguen vivos bailan
 ; (baile_*: una pose cada 4 pasos, saltando en algunas) y suena un tono que

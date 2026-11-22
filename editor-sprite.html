@@ -1579,7 +1579,7 @@ nivel1                  ; Primer nivel
                         .byte 1,19,13,2,8,11,2,19,18,0,15,5,0,15,16,5,2,3,5,36,3,5,2,20,7,19,11,4,19,8,4,19,14,8,31,15,8,14,2,6,7,16,6,2,20,3,34,11,3,3,11,5,36,20 ; celulas (parte, x, y)
                         .byte $FF,0,0                           ; sin salida
 `;
-const PRESUPUESTO = 0xBC00 - 0x7100 - 3273;   // ZONA_NIVELES_FIN - ZONA_NIVELES (hardware.asm) - ANTES_NIVELES (main.asm: kaiju_titulo.lz + animaciones.asm): 15927 bytes para niveles
+const PRESUPUESTO = 0xBC00 - 0x7100 - 3566;   // ZONA_NIVELES_FIN - ZONA_NIVELES (hardware.asm) - ANTES_NIVELES (main.asm: kaiju_titulo.lz + animaciones.asm): 15634 bytes para niveles
 const NTILES = [0, 2, 3, 4, 5, ...Array.from({ length: 14 }, (_, i) => 6 + i), 0x34, 0x35, 0x36, 0x37, 0x38];
 const NOMBRE_TILE = { 0:'Vacío (borra)', 2:'Borde horizontal: lastima al chocarlo', 3:'Borde vertical / esquina: lastima al chocarlo',
   4:'Muro', 5:'Bloque azul: se rompe a tiros (+1 punto)' };

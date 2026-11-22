@@ -125,7 +125,8 @@ fa_j1   dec jug_datos+J_ENERGIA,x
         ldy #15
         jsr mensaje
         jmp etapa_sig
-perdio  lda #<kaiju_txt_gameover
+perdio  jsr muerte_cabeza
+        lda #<kaiju_txt_gameover
         ldx #>kaiju_txt_gameover
         ldy #15
         jsr mensaje
@@ -258,7 +259,7 @@ MAPAS   = *
         icl "niveles.asm"       ; generado con editor-sprite.html (panel Niveles)
 
         ; titulo + animaciones: tiene que coincidir con PRESUPUESTO en el editor
-ANTES_NIVELES = 3273
+ANTES_NIVELES = 3566
         .if NIVELES <> ZONA_NIVELES + ANTES_NIVELES
         .error "Cambio lo que va antes de los niveles: actualizar ANTES_NIVELES y PRESUPUESTO (editor-sprite.html)"
         .endif

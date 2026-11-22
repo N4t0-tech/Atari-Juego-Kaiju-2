@@ -234,9 +234,10 @@ SND_EXPLOSION = 4       ; ruido que va bajando
 SND_IMPACTO = 5         ; robot herido: zumbido que va subiendo
 SND_VICTORIA = 6        ; nivel superado: tono que va subiendo
 SND_DOLOR   = 7         ; borde verde: gruñido robotico que va bajando
-snd_base .byte 20,60,40,90,30,50,120,40
-snd_paso .byte 6,$FC,12,$FA,24,$F8,$F4,16
-snd_dist .byte $A0,$A0,$80,$A0,$80,$C0,$A0,$C0  ; $A = tono puro, $8 = ruido
+SND_MUERTE  = 8         ; muerte en 1P: tono puro que cae
+snd_base .byte 20,60,40,90,30,50,120,40,30
+snd_paso .byte 6,$FC,12,$FA,24,$F8,$F4,16,18
+snd_dist .byte $A0,$A0,$80,$A0,$80,$C0,$A0,$C0,$A0  ; $A = tono puro, $8 = ruido
 
 txt_level .byte $28,$29,$2A,$29,$28     ; "LEVEL" con la fuente de Kaiju
 hud_dirty .byte 1       ; 1 = hay que redibujar el HUD
