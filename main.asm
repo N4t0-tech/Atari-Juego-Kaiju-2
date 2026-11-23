@@ -64,6 +64,7 @@ nombre_e .byte 'E:',$9B
 
 start
         jsr iniciar
+        jsr intro
 
 partida
         jsr titulo
@@ -256,10 +257,11 @@ MAPAS   = *
         org ZONA_NIVELES
         icl "kaiju_titulo.asm"
         icl "animaciones.asm"   ; codigo que no corre en cada frame
+        icl "intro.asm"        ; generado con editor-sprite.html (panel Intro)
         icl "niveles.asm"       ; generado con editor-sprite.html (panel Niveles)
 
-        ; titulo + animaciones: tiene que coincidir con PRESUPUESTO en el editor
-ANTES_NIVELES = 3566
+        ; titulo + animaciones + intro: tiene que coincidir con PRESUPUESTO en el editor
+ANTES_NIVELES = 3835
         .if NIVELES <> ZONA_NIVELES + ANTES_NIVELES
         .error "Cambio lo que va antes de los niveles: actualizar ANTES_NIVELES y PRESUPUESTO (editor-sprite.html)"
         .endif

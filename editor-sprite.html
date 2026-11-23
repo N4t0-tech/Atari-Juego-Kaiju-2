@@ -78,10 +78,12 @@
   /* niveles */
   .aviso { display:none; background:#3a3020; border:1px solid #7a6530; border-radius:8px; padding:8px 12px; margin-top:8px; }
   .ncol { min-width:200px; }
-  #nlista { display:flex; flex-direction:column; gap:3px; max-height:360px; overflow:auto; }
-  #nlista div { padding:4px 8px; border:1px solid var(--borde); border-radius:6px; cursor:pointer; background:#262930;
-                white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:220px; }
-  #nlista div.sel { border-color:var(--acento); background:#203a41; }
+  #nlista, #ilista { display:flex; flex-direction:column; gap:3px; max-height:360px; overflow:auto; }
+  #nlista div, #ilista button { padding:4px 8px; border:1px solid var(--borde); border-radius:6px; cursor:pointer; background:#262930;
+    white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  #nlista div { cursor:pointer; }
+  #ilista button { display:block; width:100%; text-align:left; color:inherit; font:inherit; }
+  #nlista div.sel, #ilista button.on { border-color:var(--acento); background:#203a41; }
   #nlista small { color:var(--suave); }
   #nmapa { width:100%; height:auto; aspect-ratio:640/384; background:#000; }
   #npartes { display:grid; gap:4px; margin-top:6px; }
@@ -131,6 +133,8 @@ Arriba eliges qué editar con las pestañas.
   <ol>
     <li><b>Niveles</b> (mapas, robots, células, salida): pestaña <b>🗺️ Niveles</b> → abajo del todo → <b>💾 Descargar niveles.asm</b>.
       Envía ese archivo.</li>
+    <li><b>Intro</b> (animación al arrancar el juego): pestaña <b>🎬 Intro</b> → <b>💾 Descargar intro.asm</b>.
+      Envía ese archivo.</li>
     <li><b>Dibujos y colores</b> (jugador, bala, fondo, enemigos y sus animaciones): pestaña <b>📤 Exportar / Importar</b> →
       <b>💾 Descargar dibujos</b>. Envía ese archivo (<code>dibujos-kaiju.txt</code>).</li>
   </ol>
@@ -140,14 +144,15 @@ Arriba eliges qué editar con las pestañas.
 <div id="aviso">Se recuperó un borrador guardado de una sesión anterior.
   <button id="descartar">Descartar y cargar el del juego</button></div>
 
-<nav id="tabs">
-  <button data-tab="jugador">🤖 Jugador</button>
-  <button data-tab="enemigos">👾 Enemigos</button>
-  <button data-tab="animacion">🎞️ Animación de enemigos</button>
-  <button data-tab="niveles">🗺️ Niveles</button>
-  <button data-tab="prueba">▶ Prueba</button>
-  <button data-tab="exportar">📤 Exportar / Importar</button>
-</nav>
+  <nav id="tabs">
+    <button data-tab="jugador">🤖 Jugador</button>
+    <button data-tab="enemigos">👾 Enemigos</button>
+    <button data-tab="animacion">🎞️ Animación de enemigos</button>
+    <button data-tab="niveles">🗺️ Niveles</button>
+    <button data-tab="intro">🎬 Intro</button>
+    <button data-tab="prueba">▶ Prueba</button>
+    <button data-tab="exportar">📤 Exportar / Importar</button>
+  </nav>
 
 <section class="tab" data-tab="jugador">
 <!-- ============ KAIJU ============ -->
@@ -405,6 +410,48 @@ Vaciar el mapa: borra toda la parte, con sus células y robots.">?</span>
 </div>
 </section>
 
+<!-- ============ INTRO ============ -->
+<section class="tab" data-tab="intro">
+<div class="panel" id="pintro">
+  <h2>Intro · <code>intro.asm</code> <span class="q" data-ayuda="Animación que se ve solo al arrancar el juego, antes del título. Es una secuencia de pasos: en cada uno el Kaiju puede aparecer en una pose, posición y sonido. Se puede saltar con el botón.">?</span></h2>
+  <p class="ayuda">Cada paso mueve o muestra al Kaiju (sprite PMG del jugador 1). Se reproduce una vez al encender;
+    con el botón del joystick se salta. Para entregarla pulsa <strong>💾 Descargar intro.asm</strong> y envía ese archivo.</p>
+  <details class="guia"><summary>Paso a paso</summary><ol>
+    <li>Usa <b>+ Paso</b> para agregar cuadros a la secuencia.</li>
+    <li>Elige la <b>pose</b>, la posición <b>X/Y</b>, si va <b>espejado</b>, cuánto dura (<b>espera</b>, en pasos de juego) y un <b>sonido</b> opcional.</li>
+    <li>Usa la <b>Vista previa</b> para probarla aquí; luego confirma en Altirra.</li>
+    <li>Descarga <code>intro.asm</code> y envíalo al programador.</li></ol></details>
+  <div id="iaviso" class="aviso">Se recuperó un borrador de intro de una sesión anterior.
+    <button id="idescartar">Descartar y cargar la del juego</button></div>
+  <div class="fila" style="margin-top:8px">
+    <div class="ncol">
+      <h3 style="margin-top:0">Pasos <span class="q" data-ayuda="La secuencia en orden. Haz clic en uno para editarlo.">?</span></h3>
+      <div id="ilista"></div>
+      <div class="grupo" style="margin-top:8px"><button id="inuevo">+ Paso</button><button id="iduplicar">Duplicar</button><button id="iborrar">Borrar</button></div>
+      <div class="grupo"><button id="isubir">↑ Antes</button><button id="ibajar">↓ Después</button></div>
+      <p id="imemoria" class="ayuda" style="font-size:12px"></p>
+    </div>
+    <div style="flex:1; min-width:280px; max-width:520px">
+      <h3 style="margin-top:0">Paso elegido <span class="q" data-ayuda="Pose: una de las 6 del Kaiju, u Oculto para no mostrar sprite. X/Y: posición en pantalla (X 48-200 aprox, Y 40-200). Espejo: mira a la izquierda. Espera: pasos (2 frames c/u). Sonido: SND_* opcional al entrar al paso.">?</span></h3>
+      <div id="iform"></div>
+      <h3>Vista previa <span class="q" data-ayuda="Simulación aproximada en el navegador: reproduce la secuencia con el sprite del Kaiju y el sonido. La referencia final es Altirra.">?</span></h3>
+      <canvas id="iprev" width="320" height="192" style="width:100%; max-width:480px; height:auto; border:1px solid var(--borde); border-radius:4px; background:#000; image-rendering:pixelated"></canvas>
+      <div class="grupo" style="margin-top:6px">
+        <button id="iplay">▶ Reproducir</button><button id="ipausa">⏸ Pausa</button><button id="ipaso">Paso</button><button id="ireset">⟲ Reiniciar</button>
+        <label style="align-self:center"><input type="checkbox" id="isonido"> Sonido</label>
+      </div>
+      <div id="iestado" class="ayuda" style="font-size:12px; min-height:1.5em"></div>
+    </div>
+  </div>
+  <h3>Entregar la intro: intro.asm <span class="q" data-ayuda="Archivo para el juego, generado con la secuencia actual.">?</span></h3>
+  <p class="nota">📦 Pulsa <b>💾 Descargar intro.asm</b> y envía ese archivo al programador. Solo lleva la intro.</p>
+  <div class="grupo"><button id="idescargar">💾 Descargar intro.asm</button><button id="icopiar">Copiar</button>
+    <button id="iabrir">Abrir intro.asm…</button><button id="ipegar">Cargar el texto pegado</button></div>
+  <input type="file" id="iarchivo" accept=".asm" style="display:none">
+  <textarea id="iexp" spellcheck="false" title="Puedes pegar aquí un intro.asm y pulsar «Cargar el texto pegado»"></textarea>
+</div>
+</section>
+
 <!-- ============ ESCENA ============ -->
 <section class="tab" data-tab="prueba">
 <div class="panel">
@@ -430,7 +477,7 @@ Los niveles NO van aquí: se entregan con Descargar niveles.asm, en la pestaña 
   <p class="nota">📦 Pulsa <b>💾 Descargar dibujos</b> y envía el archivo <code>dibujos-kaiju.txt</code> al programador.
     Lleva todo lo de las pestañas <b>🤖 Jugador</b>, <b>👾 Enemigos</b> y <b>🎞️ Animación de enemigos</b>: el jugador y sus colores,
     la bala, el fondo, el robot, el tirador, la explosión y cuánto duran el parpadeo y la explosión.<br>
-    <b>No</b> lleva los niveles: esos se entregan desde la pestaña <b>🗺️ Niveles</b>.<br>
+    <b>No</b> lleva los niveles ni la intro: los niveles van en <b>🗺️ Niveles</b> y la intro en <b>🎬 Intro</b>.<br>
     También puedes pulsar <b>Copiar</b> y pegar el texto en un mensaje.</p>
   <div class="grupo"><button id="descargar">💾 Descargar dibujos</button><button id="copiar">Copiar</button></div>
   <textarea id="exp" readonly></textarea>
@@ -663,8 +710,8 @@ document.addEventListener('keydown', e => {
   if (document.activeElement === escena || /TEXTAREA|INPUT/.test(document.activeElement.tagName)) return;
   if (teclaNiveles(e)) return;
   if (e.key === 'Escape') cerrarPaleta();
-  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); e.shiftKey ? rehacer() : deshacer(); return; }
-  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') { e.preventDefault(); rehacer(); return; }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'z') { e.preventDefault(); const u=focoIntro?iDeshacer:focoNiveles?nDeshacer:deshacer, r=focoIntro?iRehacer:focoNiveles?nRehacer:rehacer; e.shiftKey ? r() : u(); return; }
+  if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'y') { e.preventDefault(); (focoIntro?iRehacer:focoNiveles?nRehacer:rehacer)(); return; }
   if (e.ctrlKey || e.metaKey || e.altKey) return;
   const k = e.key.toLowerCase();
   if (k === 'b') herramienta = 'lapiz';
@@ -1579,7 +1626,7 @@ nivel1                  ; Primer nivel
                         .byte 1,19,13,2,8,11,2,19,18,0,15,5,0,15,16,5,2,3,5,36,3,5,2,20,7,19,11,4,19,8,4,19,14,8,31,15,8,14,2,6,7,16,6,2,20,3,34,11,3,3,11,5,36,20 ; celulas (parte, x, y)
                         .byte $FF,0,0                           ; sin salida
 `;
-const PRESUPUESTO = 0xBC00 - 0x7100 - 3566;   // ZONA_NIVELES_FIN - ZONA_NIVELES (hardware.asm) - ANTES_NIVELES (main.asm: kaiju_titulo.lz + animaciones.asm): 15634 bytes para niveles
+const PRESUPUESTO = 0xBC00 - 0x7100 - 3835;   // ZONA_NIVELES_FIN - ZONA_NIVELES (hardware.asm) - ANTES_NIVELES (main.asm: kaiju_titulo.lz + animaciones.asm + intro.asm): 15365 bytes para niveles
 const NTILES = [0, 2, 3, 4, 5, ...Array.from({ length: 14 }, (_, i) => 6 + i), 0x34, 0x35, 0x36, 0x37, 0x38];
 const NOMBRE_TILE = { 0:'Vacío (borra)', 2:'Borde horizontal: lastima al chocarlo', 3:'Borde vertical / esquina: lastima al chocarlo',
   4:'Muro', 5:'Bloque azul: se rompe a tiros (+1 punto)' };
@@ -1949,10 +1996,12 @@ document.getElementById('nprobar').addEventListener('click', () => {
   document.getElementById('nivelsel').value = nSel; cargarNivel(nSel);
   mostrarTab('prueba'); escena.scrollIntoView({ behavior:'smooth', block:'center' }); escena.focus({ preventScroll:true });
 });
-// el Ctrl+Z va a los niveles si lo último que se tocó fue este panel
-document.addEventListener('pointerdown', e => { focoNiveles = !!e.target.closest('#pniveles'); }, true);
+// el Ctrl+Z va al panel si lo último que se tocó fue niveles o intro
+document.addEventListener('pointerdown', e => { focoNiveles = !!e.target.closest('#pniveles'); focoIntro = !!e.target.closest('#pintro'); }, true);
 function teclaNiveles(e) {
-  if (!focoNiveles || !(e.ctrlKey || e.metaKey)) return false;
+  if (!(e.ctrlKey || e.metaKey)) return false;
+  if (focoIntro) { const k=e.key.toLowerCase(); if(k==='z'){e.preventDefault(); e.shiftKey?iRehacer():iDeshacer(); return true;} if(k==='y'){e.preventDefault(); iRehacer(); return true;} }
+  if (!focoNiveles) return false;
   const k = e.key.toLowerCase();
   if (k === 'z') { e.preventDefault(); e.shiftKey ? nRehacer() : nDeshacer(); return true; }
   if (k === 'y') { e.preventDefault(); nRehacer(); return true; }
@@ -2259,6 +2308,379 @@ document.getElementById('archivo').addEventListener('change', async e => {
   guardarUndo(); S = nuevo; cambio();
 });
 
+// ===================== intro =====================
+const INTRO_ASM = `; intro.asm - animacion de inicio (generado con editor-sprite.html, panel Intro)
+; Se ejecuta solo al arrancar, antes del titulo. Se puede saltar con el boton.
+
+intro
+        jsr limpiar_pantalla
+        jsr limpiar_pmg
+        jsr modo_juego
+        lda #0
+        sta jugador
+        sta intro_i
+in_paso ldx intro_i
+        cpx intro_pasos
+        bcs in_fin
+        ; leer paso: pose,px,py,espejo,espera,snd (6 bytes)
+        txa
+        asl @
+        sta tmp2
+        asl @               ; *4
+        clc
+        adc tmp2            ; *6
+        tax
+        lda intro_data,x
+        sta in_pose
+        lda intro_data+1,x
+        sta px
+        lda intro_data+2,x
+        sta py
+        lda intro_data+3,x
+        sta espejo
+        lda intro_data+4,x
+        sta in_espera
+        lda intro_data+5,x
+        sta in_snd
+
+        lda in_pose
+        cmp #$FF
+        beq in_hide
+        jsr in_dibujar
+        jmp in_snd_do
+in_hide jsr limpiar_pmg
+in_snd_do
+        lda in_snd
+        cmp #$FF
+        beq in_wait
+        jsr sonar
+in_wait lda in_espera
+        beq in_next
+        sta ecuenta
+in_w    jsr esperar_paso
+        jsr actualizar_sonido
+        lda STRIG0
+        and STRIG1
+        beq in_fin              ; saltar intro
+        dec ecuenta
+        bne in_w
+in_next inc intro_i
+        jmp in_paso
+in_fin  lda #0
+        sta AUDC1
+        sta sndtim
+        jsr limpiar_pmg
+        rts
+
+; dibuja pose in_pose del jugador 0 en px,py
+in_dibujar
+        ldx in_pose
+        lda poses_lo,x
+        sec
+        sbc #4
+        sta ptr
+        lda poses_hi,x
+        sbc #0
+        sta ptr+1
+        lda ptr
+        clc
+        adc #24
+        sta ptr4
+        lda ptr+1
+        adc #0
+        sta ptr4+1
+        jsr pmg_jugador
+        lda px
+        jsr hpos_jugador
+        ldy #31
+        lda #0
+in_clr  sta (ptr3),y
+        sta (ptr5),y
+        dey
+        bpl in_clr
+        ldy #27
+in_dr   lda (ptr),y
+        jsr espejar
+        sta (ptr3),y
+        lda (ptr4),y
+        jsr espejar
+        sta (ptr5),y
+        dey
+        cpy #3
+        bne in_dr
+        rts
+
+intro_i     .byte 0
+in_pose     .byte 0
+in_espera   .byte 0
+in_snd      .byte 0
+
+intro_pasos .byte 8
+;          pose, px,  py,  esp, espera, snd
+intro_data
+        .byte 1,   60,  140, 0,   6,  $FF  ; camina A entrando
+        .byte 2,   75,  140, 0,   6,  $FF  ; camina B
+        .byte 1,   90,  140, 0,   6,  $FF
+        .byte 2,   105, 140, 0,   6,  $FF
+        .byte 1,   120, 140, 0,   6,  $FF
+        .byte 0,   120, 140, 0,   20, 6    ; quieto + SND_VICTORIA
+        .byte 3,   120, 136, 0,   8,  $FF  ; arriba A
+        .byte 0,   120, 140, 0,   20, $FF  ; quieto final
+`;
+const IPOSES = [['0','Quieto derecha'],['1','Camina A'],['2','Camina B'],['3','Arriba A'],['4','Arriba B'],['5','Quieto izquierda'],['255','Oculto']];
+const ISND = [['255','Ninguno'],['0','SND_DISPARO'],['1','SND_RECOGER'],['2','SND_GOLPE'],['3','SND_TIRO'],['4','SND_EXPLOSION'],['5','SND_IMPACTO'],['6','SND_VICTORIA'],['7','SND_DOLOR'],['8','SND_MUERTE']];
+const ISND_DEF = {0:{b:20,p:6,d:0xa0},1:{b:60,p:-4,d:0xa0},2:{b:40,p:12,d:0x80},3:{b:90,p:-6,d:0xa0},4:{b:30,p:24,d:0x80},5:{b:50,p:-8,d:0xc0},6:{b:120,p:-12,d:0xa0},7:{b:40,p:16,d:0xc0},8:{b:30,p:18,d:0xa0}};
+function introNuevo() { return { pasos:[{pose:0,px:120,py:140,espejo:0,espera:20,snd:255}] }; }
+function copiarIntro(o){ return JSON.parse(JSON.stringify(o)); }
+function leerIntro(texto){
+  const pasos = [];
+  const re = /\.byte\s+(-?\d+|[$][0-9A-Fa-f]+),\s*(-?\d+|[$][0-9A-Fa-f]+),\s*(-?\d+|[$][0-9A-Fa-f]+),\s*(-?\d+|[$][0-9A-Fa-f]+),\s*(-?\d+|[$][0-9A-Fa-f]+),\s*(-?\d+|[$][0-9A-Fa-f]+)/g;
+  const val = s => s.startsWith('$') ? parseInt(s.slice(1),16) : parseInt(s,10);
+  let m; while ((m = re.exec(texto))) {
+    if (texto.slice(Math.max(0,m.index-40),m.index).includes('intro_pasos')) continue;
+    pasos.push({pose:val(m[1])&255,px:val(m[2])&255,py:val(m[3])&255,espejo:val(m[4])&255,espera:val(m[5])&255,snd:val(m[6])&255});
+  }
+  return { pasos: pasos.length ? pasos : introNuevo().pasos };
+}
+function exportarIntro(iv){
+  const L=[];
+  L.push('; intro.asm - animacion de inicio (generado con editor-sprite.html, panel Intro)');
+  L.push('; Se ejecuta solo al arrancar, antes del titulo. Se puede saltar con el boton.');
+  L.push('');
+  L.push('intro');
+  L.push('        jsr limpiar_pantalla');
+  L.push('        jsr limpiar_pmg');
+  L.push('        jsr modo_juego');
+  L.push('        lda #0');
+  L.push('        sta jugador');
+  L.push('        sta intro_i');
+  L.push('in_paso ldx intro_i');
+  L.push('        cpx intro_pasos');
+  L.push('        bcs in_fin');
+  L.push('        ; leer paso: pose,px,py,espejo,espera,snd (6 bytes)');
+  L.push('        txa');
+  L.push('        asl @');
+  L.push('        sta tmp2');
+  L.push('        asl @               ; *4');
+  L.push('        clc');
+  L.push('        adc tmp2            ; *6');
+  L.push('        tax');
+  L.push('        lda intro_data,x');
+  L.push('        sta in_pose');
+  L.push('        lda intro_data+1,x');
+  L.push('        sta px');
+  L.push('        lda intro_data+2,x');
+  L.push('        sta py');
+  L.push('        lda intro_data+3,x');
+  L.push('        sta espejo');
+  L.push('        lda intro_data+4,x');
+  L.push('        sta in_espera');
+  L.push('        lda intro_data+5,x');
+  L.push('        sta in_snd');
+  L.push('');
+  L.push('        lda in_pose');
+  L.push('        cmp #$FF');
+  L.push('        beq in_hide');
+  L.push('        jsr in_dibujar');
+  L.push('        jmp in_snd_do');
+  L.push('in_hide jsr limpiar_pmg');
+  L.push('in_snd_do');
+  L.push('        lda in_snd');
+  L.push('        cmp #$FF');
+  L.push('        beq in_wait');
+  L.push('        jsr sonar');
+  L.push('in_wait lda in_espera');
+  L.push('        beq in_next');
+  L.push('        sta ecuenta');
+  L.push('in_w    jsr esperar_paso');
+  L.push('        jsr actualizar_sonido');
+  L.push('        lda STRIG0');
+  L.push('        and STRIG1');
+  L.push('        beq in_fin              ; saltar intro');
+  L.push('        dec ecuenta');
+  L.push('        bne in_w');
+  L.push('in_next inc intro_i');
+  L.push('        jmp in_paso');
+  L.push('in_fin  lda #0');
+  L.push('        sta AUDC1');
+  L.push('        sta sndtim');
+  L.push('        jsr limpiar_pmg');
+  L.push('        rts');
+  L.push('');
+  L.push('; dibuja pose in_pose del jugador 0 en px,py');
+  L.push('in_dibujar');
+  L.push('        ldx in_pose');
+  L.push('        lda poses_lo,x');
+  L.push('        sec');
+  L.push('        sbc #4');
+  L.push('        sta ptr');
+  L.push('        lda poses_hi,x');
+  L.push('        sbc #0');
+  L.push('        sta ptr+1');
+  L.push('        lda ptr');
+  L.push('        clc');
+  L.push('        adc #24');
+  L.push('        sta ptr4');
+  L.push('        lda ptr+1');
+  L.push('        adc #0');
+  L.push('        sta ptr4+1');
+  L.push('        jsr pmg_jugador');
+  L.push('        lda px');
+  L.push('        jsr hpos_jugador');
+  L.push('        ldy #31');
+  L.push('        lda #0');
+  L.push('in_clr  sta (ptr3),y');
+  L.push('        sta (ptr5),y');
+  L.push('        dey');
+  L.push('        bpl in_clr');
+  L.push('        ldy #27');
+  L.push('in_dr   lda (ptr),y');
+  L.push('        jsr espejar');
+  L.push('        sta (ptr3),y');
+  L.push('        lda (ptr4),y');
+  L.push('        jsr espejar');
+  L.push('        sta (ptr5),y');
+  L.push('        dey');
+  L.push('        cpy #3');
+  L.push('        bne in_dr');
+  L.push('        rts');
+  L.push('');
+  L.push('intro_i     .byte 0');
+  L.push('in_pose     .byte 0');
+  L.push('in_espera   .byte 0');
+  L.push('in_snd      .byte 0');
+  L.push('');
+  L.push('intro_pasos .byte ' + iv.pasos.length);
+  L.push(';          pose, px,  py,  esp, espera, snd');
+  L.push('intro_data');
+  iv.pasos.forEach((p,i)=>{
+    const snd = p.snd===255?'$FF':String(p.snd);
+    const esp = p.espejo? '$80':'0';
+    L.push(`        .byte ${String(p.pose).padStart(3)}, ${String(p.px).padStart(3)}, ${String(p.py).padStart(3)}, ${esp.padStart(3)}, ${String(p.espera).padStart(3)}, ${snd.padStart(3)}  ; paso ${i+1}`);
+  });
+  return L.join('\n') + '\n';
+}
+let IBASE = leerIntro(INTRO_ASM);
+let IV = copiarIntro(IBASE);
+let iSel = 0, focoIntro = false;
+const iDeshacerPila = [], iRehacerPila = [];
+const pasoAct = () => IV.pasos[iSel];
+function iAjustar(){ iSel = Math.max(0, Math.min(iSel, IV.pasos.length-1)); }
+function iGuardarUndo(antes){ iDeshacerPila.push(antes || JSON.stringify(IV)); if (iDeshacerPila.length>200) iDeshacerPila.shift(); iRehacerPila.length=0; }
+function iDeshacer(){ if(!iDeshacerPila.length) return; iRehacerPila.push(JSON.stringify(IV)); IV=JSON.parse(iDeshacerPila.pop()); iAjustar(); iCambio(true); }
+function iRehacer(){ if(!iRehacerPila.length) return; iDeshacerPila.push(JSON.stringify(IV)); IV=JSON.parse(iRehacerPila.pop()); iAjustar(); iCambio(true); }
+function iRefrescar(){
+  const lista = document.getElementById('ilista'); if(!lista) return;
+  lista.innerHTML='';
+  IV.pasos.forEach((p,i)=>{
+    const b=document.createElement('button');
+    const pn=IPOSES.find(x=>+x[0]==p.pose); const sn=ISND.find(x=>+x[0]==p.snd);
+    b.textContent = `${i+1}. ${(pn?pn[1]:'pose '+p.pose)} x=${p.px} y=${p.py}${p.espejo?' izq':''} t=${p.espera}${p.snd!==255?' '+(sn?sn[1]:'snd'):''}`;
+    b.classList.toggle('on', i===iSel);
+    b.style.display='block'; b.style.width='100%'; b.style.textAlign='left'; b.style.margin='2px 0';
+    b.onclick=()=>{ iSel=i; iRefrescar(); };
+    lista.appendChild(b);
+  });
+  const f=document.getElementById('iform'); const p=pasoAct();
+  f.innerHTML = `
+    <label class="campo">Pose <select id="ipose">${IPOSES.map(([v,n])=>`<option value="${v}" ${+v==p.pose?'selected':''}>${n}</option>`).join('')}</select></label>
+    <label class="campo">X <input id="ipx" type="number" min="0" max="255" value="${p.px}"></label>
+    <label class="campo">Y <input id="ipy" type="number" min="0" max="255" value="${p.py}"></label>
+    <label class="campo"><input id="iesp" type="checkbox" ${p.espejo?'checked':''}> Espejado (mirar izquierda)</label>
+    <label class="campo">Espera (pasos) <input id="iesp2" type="number" min="0" max="255" value="${p.espera}"></label>
+    <label class="campo">Sonido <select id="isnd">${ISND.map(([v,n])=>`<option value="${v}" ${+v==p.snd?'selected':''}>${n}</option>`).join('')}</select></label>`;
+  ['ipose','ipx','ipy','iesp','iesp2','isnd'].forEach(id=>{
+    const el=document.getElementById(id); if(!el) return;
+    el.onchange=()=>{
+      iGuardarUndo();
+      p.pose=+document.getElementById('ipose').value;
+      p.px=Math.max(0,Math.min(255,+document.getElementById('ipx').value||0));
+      p.py=Math.max(0,Math.min(255,+document.getElementById('ipy').value||0));
+      p.espejo=document.getElementById('iesp').checked?0x80:0;
+      p.espera=Math.max(0,Math.min(255,+document.getElementById('iesp2').value||0));
+      p.snd=+document.getElementById('isnd').value;
+      iCambio();
+    };
+  });
+  document.getElementById('imemoria').textContent = IV.pasos.length + ' pasos · ' + exportarIntro(IV).length + ' bytes de texto ASM.';
+}
+let itGuardar=0;
+function iCambio(form){
+  iAjustar(); iRefrescar(); if(!form) document.getElementById('iexp').value = exportarIntro(IV);
+  if(iPi>=IV.pasos.length) iPi=Math.max(0,IV.pasos.length-1);
+  iDibujarPrev();
+  clearTimeout(itGuardar);
+  itGuardar=setTimeout(()=>{ try{ localStorage.setItem('atari-juego-intro', JSON.stringify(IV)); }catch(e){} },300);
+}
+function iCargarTexto(texto){
+  try{ const iv=leerIntro(texto); if(!iv.pasos.length) return false; iGuardarUndo(); IV=iv; iAjustar(); iCambio(); return true; }catch(e){ return false; }
+}
+document.getElementById('inuevo').onclick=()=>{ iGuardarUndo(); IV.pasos.splice(iSel+1,0,{pose:0,px:120,py:140,espejo:0,espera:20,snd:255}); iSel++; iCambio(); };
+document.getElementById('iduplicar').onclick=()=>{ iGuardarUndo(); IV.pasos.splice(iSel+1,0,copiarIntro(pasoAct())); iSel++; iCambio(); };
+document.getElementById('iborrar').onclick=()=>{ if(IV.pasos.length<=1) return; iGuardarUndo(); IV.pasos.splice(iSel,1); iAjustar(); iCambio(); };
+document.getElementById('isubir').onclick=()=>{ if(iSel<=0) return; iGuardarUndo(); const t=IV.pasos[iSel-1]; IV.pasos[iSel-1]=IV.pasos[iSel]; IV.pasos[iSel]=t; iSel--; iCambio(); };
+document.getElementById('ibajar').onclick=()=>{ if(iSel>=IV.pasos.length-1) return; iGuardarUndo(); const t=IV.pasos[iSel+1]; IV.pasos[iSel+1]=IV.pasos[iSel]; IV.pasos[iSel]=t; iSel++; iCambio(); };
+document.getElementById('idescargar').onclick=()=>{ iCambio(); const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([document.getElementById('iexp').value],{type:'text/plain'})); a.download='intro.asm'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),1000); };
+document.getElementById('icopiar').onclick=()=>{ iCambio(); const t=document.getElementById('iexp'); t.select(); if(navigator.clipboard) navigator.clipboard.writeText(t.value).catch(()=>document.execCommand('copy')); else document.execCommand('copy'); };
+document.getElementById('iabrir').onclick=()=>document.getElementById('iarchivo').click();
+document.getElementById('iarchivo').onchange=async e=>{ const f=e.target.files[0]; if(!f) return; const txt=await f.text(); e.target.value=''; if(!iCargarTexto(txt)) alert('No pude leer intro.asm'); };
+document.getElementById('ipegar').onclick=()=>{ if(!iCargarTexto(document.getElementById('iexp').value)) alert('No pude leer el texto pegado como intro.asm'); };
+document.getElementById('idescartar').onclick=()=>{ iGuardarUndo(); IV=copiarIntro(IBASE); iAjustar(); document.getElementById('iaviso').style.display='none'; iCambio(); };
+document.getElementById('pintro').addEventListener('pointerdown', ()=>{ focoIntro=true; focoNiveles=false; });
+
+// --- vista previa intro ---
+let iPlay=false, iPi=0, iTick=0, iUlt=0, iAcum=0, iAudio=null, iOsc=null, iGan=null, iSnd=null;
+function iAudioInit(){ if(iAudio||!window.AudioContext) return; iAudio=new AudioContext(); iOsc=iAudio.createOscillator(); iGan=iAudio.createGain(); iOsc.type='square'; iGan.gain.value=0; iOsc.connect(iGan).connect(iAudio.destination); iOsc.start(); }
+function iSonar(snd){ iSnd = (snd!==255 && ISND_DEF[snd]) ? {t:8, ...ISND_DEF[snd]} : null; }
+function iTickSonido(){ if(!iAudio) return; if(iSnd && iSnd.t>0){ const k=8-iSnd.t; const f=iSnd.b + k*iSnd.p; const hz=63921/(2*(Math.max(1,f&255)+1)); const on=document.getElementById('isonido').checked; iOsc.frequency.setValueAtTime(hz,iAudio.currentTime); iGan.gain.setValueAtTime(on?(iSnd.t+3)/15*0.12:0,iAudio.currentTime); iSnd.t--; } else { iGan.gain.setValueAtTime(0,iAudio.currentTime); iSnd=null; } }
+function iResetPrev(pause){ iPi=0; iTick=0; iAcum=0; iSnd=null; if(pause) iPlay=false; const p=IV.pasos[0]; if(p && p.snd!==255) iSonar(p.snd); iDibujarPrev(); }
+function iPasoPrev(){
+  if(!IV.pasos.length) return;
+  if(iTick<=0){ const p=IV.pasos[iPi]; iSonar(p.snd); iTick = Math.max(0, p.espera|0); }
+  iTickSonido();
+  if(iTick>0) iTick--;
+  if(iTick<=0){ iPi++; if(iPi>=IV.pasos.length){ iPlay=false; iPi=IV.pasos.length-1; iTick=0; } else { iTick=Math.max(0,IV.pasos[iPi].espera|0); if(IV.pasos[iPi].snd!==255) iSonar(IV.pasos[iPi].snd); } }
+  iDibujarPrev();
+}
+function iDibujarPrev(){
+  const cv=document.getElementById('iprev'); if(!cv) return; const c=cv.getContext('2d');
+  c.fillStyle=PAL[0]; c.fillRect(0,0,320,192);
+  const p=IV.pasos[iPi]||IV.pasos[0]; if(!p) return;
+  if(p.pose!==255 && p.pose>=0 && p.pose<=5){
+    for(let y=0;y<24;y++) for(let x=0;x<8;x++){
+      const col=colorKaiju(getK(p.pose, p.espejo?7-x:x, y));
+      if(col){ c.fillStyle=col; c.fillRect((p.px+x-48)*2, p.py+y-32, 2, 1); }
+    }
+  }
+  const est=document.getElementById('iestado');
+  est.textContent = `Paso ${iPi+1}/${IV.pasos.length} · espera ${iTick} · ${IPOSES.find(x=>+x[0]==p.pose)?.[1]||''}${iPlay?' · reproduciendo':' · pausa'}`;
+}
+function iBucle(t){
+  requestAnimationFrame(iBucle);
+  if(tabActual!=='intro') return;
+  if(!iUlt) iUlt=t; const dt=Math.min(100,t-iUlt); iUlt=t;
+  if(!iPlay){ iDibujarPrev(); return; }
+  iAcum+=dt; const ms=1000/30;
+  while(iAcum>=ms){ iAcum-=ms; iPasoPrev(); if(!iPlay) break; }
+}
+document.getElementById('iplay').onclick=()=>{ iAudioInit(); if(!iPlay && iPi===IV.pasos.length-1 && iTick<=0) iResetPrev(false); iPlay=true; };
+document.getElementById('ipausa').onclick=()=>{ iPlay=false; if(iGan) iGan.gain.setValueAtTime(0,iAudio.currentTime); };
+document.getElementById('ipaso').onclick=()=>{ iAudioInit(); iPlay=false; iPasoPrev(); };
+document.getElementById('ireset').onclick=()=>{ iAudioInit(); iResetPrev(true); };
+document.getElementById('isonido').onchange=e=>{ if(e.target.checked) iAudioInit(); if(!e.target.checked && iGan) iGan.gain.setValueAtTime(0,iAudio.currentTime); };
+if(!window.AudioContext) document.getElementById('isonido').disabled=true;
+requestAnimationFrame(iBucle);
+
+{ let b=null; try{ b=JSON.parse(localStorage.getItem('atari-juego-intro')); }catch(e){}
+  if(b && b.pasos && Array.isArray(b.pasos) && JSON.stringify(b)!==JSON.stringify(IBASE)){
+    IV=b; document.getElementById('iaviso').style.display='block';
+  }
+}
+if (location.protocol !== 'file:') {
+  fetch('intro.asm').then(r=>r.ok?r.text():'').then(t=>{ if(!t) return; const b=leerIntro(t); IBASE=b; if(document.getElementById('iaviso').style.display!=='block'){ IV=copiarIntro(IBASE); iAjustar(); iCambio(); } }).catch(()=>{});
+}
+iAjustar(); iCambio(); iResetPrev(true);
+
 // ===================== pestañas =====================
 function mostrarTab(t) {
   tabActual = t;
@@ -2266,6 +2688,7 @@ function mostrarTab(t) {
   document.querySelectorAll('#tabs [data-tab]').forEach(x => x.classList.toggle('on', x.dataset.tab === t));
   try { localStorage.setItem('atari-juego-tab', t); } catch (e) {}
   if (t === 'niveles' && window.nListo) nRedibujar();
+  if (t === 'intro') iRefrescar();
 }
 document.querySelectorAll('#tabs [data-tab]').forEach(b => b.addEventListener('click', () => mostrarTab(b.dataset.tab)));
 { let t = null; try { t = localStorage.getItem('atari-juego-tab'); } catch (e) {}
